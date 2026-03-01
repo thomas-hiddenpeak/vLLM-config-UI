@@ -54,12 +54,12 @@ RUN useradd --create-home --shell /bin/bash appuser && \
     chown -R appuser:appuser /app
 USER appuser
 
-# 暴露端口
-EXPOSE 80 8000
+# 暴露端口（Web UI + API）
+EXPOSE 8000
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/api/health || exit 1
 
-# 启动服务
-CMD ["sh", "-c", "python3 server.py 8000"]
+# 启动服务（同时提供静态文件和API）
+CMD ["python3", "server.py", "8000"]

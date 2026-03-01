@@ -105,6 +105,8 @@ docker build -t vllm-config-ui .
 docker run -d -p 8000:8000 --name vllm-config vllm-config-ui
 ```
 
+Visit http://localhost:8000
+
 ### Docker Compose
 
 ```bash

@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
 vLLM Configuration Generator - Backend API Server
-提供模型搜索功能的后端服务
+提供模型搜索功能的后端服务和静态文件服务
 """
 
 import json
 import sys
-from http.server import HTTPServer, BaseHTTPRequestHandler
+import os
+from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 import logging
 
@@ -39,8 +40,12 @@ except ImportError:
     logger.warning("HuggingFace Hub SDK not available. HuggingFace search will be disabled.")
 
 
-class APIHandler(BaseHTTPRequestHandler):
-    """HTTP请求处理器"""
+class APIHandler(SimpleHTTPRequestHandler):
+    """HTTP请求处理器 - 提供API和静态文件服务"""
+    
+    def __init__(self, *args, **kwargs):
+        # 设置静态文件目录
+        super().__init__(*args, directory='dist', **kwargs)
     
     def _set_cors_headers(self):
         """设置CORS头"""
@@ -73,18 +78,32 @@ class APIHandler(BaseHTTPRequestHandler):
         """处理GET请求"""
         parsed_path = urlparse(self.path)
         
-        if parsed_path.path == '/api/health':
-            self._send_json_response({
-                'status': 'ok',
-                'modelscope_available': MODELSCOPE_AVAILABLE,
-                'huggingface_available': HUGGINGFACE_AVAILABLE
-            })
+        # API请求
+        if parsed_path.path.startswith('/api/'):
+            if parsed_path.path == '/api/health':
+                self._send_json_response({
+                    'status': 'ok',
+                    'modelscope_available': MODELSCOPE_AVAILABLE,
+                    'huggingface_available': HUGGINGFACE_AVAILABLE
+                })
+            else:
+                self._send_error_response('Not Found', 404)
         else:
-            self._send_error_response('Not Found', 404)
+            # 静态文件服务
+            # 如果路径不存在，返回index.html（用于SPA路由）
+            if not os.path.exists(os.path.join('dist', parsed_path.path.lstrip('/'))):
+                if parsed_path.path != '/' and not '.' in os.path.basename(parsed_path.path):
+                    self.path = '/index.html'
+            super().do_GET()
     
     def do_POST(self):
         """处理POST请求"""
         parsed_path = urlparse(self.path)
+        
+        # 只处理API请求
+        if not parsed_path.path.startswith('/api/'):
+            self._send_error_response('Not Found', 404)
+            return
         
         # 读取请求体
         content_length = int(self.headers.get('Content-Length', 0))
@@ -221,13 +240,22 @@ class APIHandler(BaseHTTPRequestHandler):
 
 def run_server(port=8000):
     """运行服务器"""
+    # 检查dist目录是否存在
+    if not os.path.exists('dist'):
+        logger.warning("dist/ directory not found. Static files will not be served.")
+        logger.warning("Run 'npm run build' to generate frontend files.")
+    
     server_address = ('', port)
     httpd = HTTPServer(server_address, APIHandler)
     
     logger.info(f"Starting server on port {port}...")
     logger.info(f"ModelScope available: {MODELSCOPE_AVAILABLE}")
     logger.info(f"HuggingFace available: {HUGGINGFACE_AVAILABLE}")
-    logger.info(f"Server running at http://localhost:{port}")
+    logger.info(f"")
+    logger.info(f"✅ Server running at:")
+    logger.info(f"   - Web UI:  http://localhost:{port}")
+    logger.info(f"   - API:     http://localhost:{port}/api/health")
+    logger.info(f"")
     
     try:
         httpd.serve_forever()
