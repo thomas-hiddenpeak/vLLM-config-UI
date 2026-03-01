@@ -1,0 +1,609 @@
+{
+  "model": {
+    "title": "核心模型配置",
+    "icon": "📦",
+    "fields": {
+      "model": {
+        "type": "string",
+        "default": "",
+        "required": true,
+        "help": "模型名称或路径（HuggingFace 或本地路径）"
+      },
+      "tokenizer": {
+        "type": "string",
+        "default": null,
+        "help": "分词器名称或路径，留空则使用模型自带的分词器"
+      },
+      "tokenizer_mode": {
+        "type": "select",
+        "default": "auto",
+        "options": ["auto", "slow", "mistral"],
+        "help": "分词器模式"
+      },
+      "trust_remote_code": {
+        "type": "boolean",
+        "default": false,
+        "help": "信任并执行模型代码（有安全风险）"
+      },
+      "dtype": {
+        "type": "select",
+        "default": "auto",
+        "options": ["auto", "half", "float16", "bfloat16", "float", "float32"],
+        "help": "模型权重数据类型"
+      },
+      "seed": {
+        "type": "number",
+        "default": 0,
+        "help": "随机种子"
+      },
+      "max_model_len": {
+        "type": "number",
+        "default": null,
+        "help": "模型处理的最大序列长度"
+      },
+      "revision": {
+        "type": "string",
+        "default": null,
+        "help": "模型修订版本（branch/tag/commit）"
+      },
+      "code_revision": {
+        "type": "string",
+        "default": null,
+        "help": "代码修订版本"
+      },
+      "tokenizer_revision": {
+        "type": "string",
+        "default": null,
+        "help": "分词器修订版本"
+      },
+      "download_dir": {
+        "type": "string",
+        "default": null,
+        "help": "模型下载目录"
+      },
+      "load_format": {
+        "type": "select",
+        "default": "auto",
+        "options": ["auto", "pt", "safetensors", "npcache", "dummy", "tensorizer", "sharded_state", "gguf", "bitsandbytes"],
+        "help": "模型加载格式"
+      },
+      "config_format": {
+        "type": "select",
+        "default": "auto",
+        "options": ["auto", "hf", "mistral"],
+        "help": "配置文件格式"
+      },
+      "guided_decoding_backend": {
+        "type": "select",
+        "default": "outlines",
+        "options": ["outlines", "lm_format_enforcer", "xgrammar"],
+        "help": "引导解码后端"
+      }
+    }
+  },
+  "distributed": {
+    "title": "分布式与并行",
+    "icon": "⚡",
+    "fields": {
+      "tensor_parallel_size": {
+        "type": "number",
+        "default": 1,
+        "min": 1,
+        "help": "张量并行 GPU 数量"
+      },
+      "pipeline_parallel_size": {
+        "type": "number",
+        "default": 1,
+        "min": 1,
+        "help": "流水线并行 GPU 数量"
+      },
+      "max_parallel_loading_workers": {
+        "type": "number",
+        "default": null,
+        "help": "并行加载模型的 Worker 数量"
+      },
+      "distributed_executor_backend": {
+        "type": "select",
+        "default": "ray",
+        "options": ["ray", "mp", "uni", "none"],
+        "help": "分布式执行后端"
+      },
+      "worker_use_ray": {
+        "type": "boolean",
+        "default": false,
+        "help": "Worker 使用 Ray"
+      },
+      "ray_workers_use_nsight": {
+        "type": "boolean",
+        "default": false,
+        "help": "Ray Worker 使用 Nsight 性能分析"
+      },
+      "disable_custom_all_reduce": {
+        "type": "boolean",
+        "default": false,
+        "help": "禁用自定义 AllReduce 操作"
+      }
+    }
+  },
+  "memory": {
+    "title": "内存与缓存",
+    "icon": "💾",
+    "fields": {
+      "block_size": {
+        "type": "select",
+        "default": 16,
+        "options": [8, 16, 32, 64, 128],
+        "help": "Token 块大小（注意力计算的粒度）"
+      },
+      "gpu_memory_utilization": {
+        "type": "number",
+        "default": 0.9,
+        "min": 0.1,
+        "max": 1.0,
+        "step": 0.1,
+        "help": "用于 KV 缓存的 GPU 内存比例"
+      },
+      "swap_space": {
+        "type": "number",
+        "default": 4,
+        "min": 0,
+        "help": "每 GPU 的 CPU 交换空间大小（GiB）"
+      },
+      "cpu_offload_gb": {
+        "type": "number",
+        "default": 0,
+        "min": 0,
+        "help": "每 GPU 卸载到 CPU 的空间（GiB）"
+      },
+      "kv_cache_dtype": {
+        "type": "select",
+        "default": "auto",
+        "options": ["auto", "fp8", "fp8_e4m3", "fp8_e5m2"],
+        "help": "KV 缓存数据类型"
+      },
+      "num_gpu_blocks_override": {
+        "type": "number",
+        "default": null,
+        "help": "覆盖 GPU block 数量"
+      },
+      "max_num_batched_tokens": {
+        "type": "number",
+        "default": null,
+        "help": "每批次最大 Token 数"
+      },
+      "enable_prefix_caching": {
+        "type": "boolean",
+        "default": false,
+        "help": "启用前缀缓存（重用跨请求的 KV 缓存）"
+      },
+      "disable_sliding_window": {
+        "type": "boolean",
+        "default": false,
+        "help": "禁用滑动窗口注意力"
+      }
+    }
+  },
+  "scheduler": {
+    "title": "调度器",
+    "icon": "📋",
+    "fields": {
+      "max_num_seqs": {
+        "type": "number",
+        "default": 256,
+        "min": 1,
+        "help": "每次迭代的最大序列数"
+      },
+      "num_scheduler_steps": {
+        "type": "number",
+        "default": 1,
+        "min": 1,
+        "help": "调度器步数"
+      },
+      "scheduler_delay_factor": {
+        "type": "number",
+        "default": 0.0,
+        "min": 0,
+        "max": 1,
+        "step": 0.1,
+        "help": "调度延迟因子（降低长请求优先级）"
+      },
+      "enable_chunked_prefill": {
+        "type": "boolean",
+        "default": false,
+        "help": "启用分块预填充（降低内存占用）"
+      },
+      "preemption_mode": {
+        "type": "select",
+        "default": "swap",
+        "options": ["swap", "recompute"],
+        "help": "抢占模式（当显存不足时）"
+      }
+    }
+  },
+  "quantization": {
+    "title": "量化",
+    "icon": "🔧",
+    "fields": {
+      "quantization": {
+        "type": "select",
+        "default": null,
+        "options": ["awq", "gptq", "marlin", "gguf", "fp8", "ipex", "None"],
+        "help": "量化方法"
+      },
+      "quantization_param_path": {
+        "type": "string",
+        "default": null,
+        "help": "量化参数路径（JSON 文件）"
+      },
+      "quant_llm_unique_layers": {
+        "type": "number",
+        "default": null,
+        "help": "Quant-LLM 独特层数"
+      }
+    }
+  },
+  "rope": {
+    "title": "RoPE 配置",
+    "icon": "⚙️",
+    "fields": {
+      "rope_theta": {
+        "type": "number",
+        "default": null,
+        "help": "RoPE 温度参数"
+      },
+      "rope_scaling": {
+        "type": "json",
+        "default": null,
+        "help": "RoPE 缩放配置（JSON 格式）"
+      },
+      "max_seq_len_to_capture": {
+        "type": "number",
+        "default": 8192,
+        "help": "CUDA Graph 捕获的最大序列长度"
+      },
+      "enforce_eager": {
+        "type": "boolean",
+        "default": false,
+        "help": "强制使用 Eager 模式（禁用 CUDA Graph）"
+      },
+      "use_v2_block_manager": {
+        "type": "boolean",
+        "default": true,
+        "help": "使用 V2 block manager"
+      }
+    }
+  },
+  "tokenizer_pool": {
+    "title": "Tokenizer 池",
+    "icon": "🔄",
+    "fields": {
+      "tokenizer_pool_size": {
+        "type": "number",
+        "default": 0,
+        "min": 0,
+        "help": "Tokenizer 进程池大小（0 表示同步分词）"
+      },
+      "tokenizer_pool_type": {
+        "type": "select",
+        "default": "ray",
+        "options": ["ray", "mp"],
+        "help": "Tokenizer 池类型"
+      },
+      "tokenizer_pool_extra_config": {
+        "type": "json",
+        "default": null,
+        "help": "Tokenizer 池额外配置（JSON）"
+      }
+    }
+  },
+  "lora": {
+    "title": "LoRA 适配器",
+    "icon": "🔌",
+    "fields": {
+      "enable_lora": {
+        "type": "boolean",
+        "default": false,
+        "help": "启用 LoRA 适配器"
+      },
+      "max_loras": {
+        "type": "number",
+        "default": 1,
+        "min": 1,
+        "help": "同时服务的最大 LoRA 数量"
+      },
+      "max_lora_rank": {
+        "type": "number",
+        "default": 16,
+        "min": 1,
+        "help": "最大 LoRA 秩"
+      },
+      "lora_extra_vocab_size": {
+        "type": "number",
+        "default": 256,
+        "min": 0,
+        "help": "LoRA 额外词汇大小"
+      },
+      "lora_dtype": {
+        "type": "select",
+        "default": "auto",
+        "options": ["auto", "float16", "bfloat16", "float32"],
+        "help": "LoRA 权重数据类型"
+      },
+      "long_lora_scaling_factors": {
+        "type": "string",
+        "default": null,
+        "help": "长 LoRA 缩放因子（逗号分隔）"
+      },
+      "max_cpu_loras": {
+        "type": "number",
+        "default": null,
+        "help": "CPU 中缓存的最大 LoRA 数量"
+      },
+      "fully_sharded_loras": {
+        "type": "boolean",
+        "default": false,
+        "help": "完全分片 LoRA"
+      },
+      "qlora_adapter_name_or_path": {
+        "type": "string",
+        "default": null,
+        "help": "QLoRA 适配器名称或路径"
+      }
+    }
+  },
+  "speculative": {
+    "title": "推测解码",
+    "icon": "🔮",
+    "fields": {
+      "speculative_model": {
+        "type": "string",
+        "default": null,
+        "help": "草稿模型名称或路径"
+      },
+      "num_speculative_tokens": {
+        "type": "number",
+        "default": null,
+        "help": "每次生成的推测 Token 数量"
+      },
+      "speculative_max_model_len": {
+        "type": "number",
+        "default": null,
+        "help": "推测模型最大长度"
+      },
+      "speculative_disable_by_batch_size": {
+        "type": "number",
+        "default": null,
+        "help": "超过此批量大小禁用推测解码"
+      },
+      "ngram_prompt_lookup_max": {
+        "type": "number",
+        "default": 0,
+        "help": "Ngram 提示查找最大大小"
+      },
+      "ngram_prompt_lookup_min": {
+        "type": "number",
+        "default": 0,
+        "help": "Ngram 提示查找最小大小"
+      },
+      "spec_decoding_acceptance_method": {
+        "type": "select",
+        "default": "rejection_sampler",
+        "options": ["rejection_sampler", "typical_acceptance_sampler"],
+        "help": "推测接受方法"
+      },
+      "typical_acceptance_sampler_posterior_threshold": {
+        "type": "number",
+        "default": null,
+        "help": "后验概率阈值"
+      },
+      "typical_acceptance_sampler_posterior_alpha": {
+        "type": "number",
+        "default": null,
+        "help": "熵阈值缩放因子"
+      },
+      "disable_logprobs_during_spec_decoding": {
+        "type": "boolean",
+        "default": null,
+        "help": "推测解码期间禁用 logprobs"
+      }
+    }
+  },
+  "multimodal": {
+    "title": "多模态",
+    "icon": "🖼️",
+    "fields": {
+      "limit_mm_per_prompt": {
+        "type": "json",
+        "default": null,
+        "help": "限制每个提示的多模态输入数量（JSON）"
+      }
+    }
+  },
+  "api_server": {
+    "title": "API 服务器",
+    "icon": "🌐",
+    "fields": {
+      "host": {
+        "type": "string",
+        "default": "0.0.0.0",
+        "help": "服务器监听地址"
+      },
+      "port": {
+        "type": "number",
+        "default": 8000,
+        "help": "服务器端口"
+      },
+      "ssl_keyfile": {
+        "type": "string",
+        "default": null,
+        "help": "SSL 私钥文件路径"
+      },
+      "ssl_certfile": {
+        "type": "string",
+        "default": null,
+        "help": "SSL 证书文件路径"
+      },
+      "ssl_ca_certs": {
+        "type": "string",
+        "default": null,
+        "help": "SSL CA 证书路径"
+      },
+      "ssl_cert_reqs": {
+        "type": "select",
+        "default": 0,
+        "options": [0, 1, 2],
+        "help": "SSL 证书验证要求（0=none, 1=optional, 2=required）"
+      },
+      "api_key": {
+        "type": "string",
+        "default": null,
+        "help": "API 密钥（留空则不需要认证）"
+      },
+      "allowed_origins": {
+        "type": "string",
+        "default": "*",
+        "help": "允许的 CORS 源（逗号分隔）"
+      },
+      "chat_template": {
+        "type": "string",
+        "default": null,
+        "help": "聊天模板（Jinja 模板）"
+      },
+      "chat_template_content_format": {
+        "type": "select",
+        "default": "auto",
+        "options": ["auto", "string", "openai"],
+        "help": "聊天模板内容格式"
+      },
+      "response_role": {
+        "type": "string",
+        "default": "assistant",
+        "help": "响应角色名称"
+      },
+      "return_tokens_as_token_ids": {
+        "type": "boolean",
+        "default": false,
+        "help": "返回 token 为 token_ids"
+      },
+      "enable_auto_tool_choice": {
+        "type": "boolean",
+        "default": false,
+        "help": "启用自动工具选择"
+      },
+      "tool_call_parser": {
+        "type": "string",
+        "default": null,
+        "help": "工具调用解析器"
+      },
+      "enable_request_id_headers": {
+        "type": "boolean",
+        "default": false,
+        "help": "启用请求 ID 响应头"
+      },
+      "enable_offline_docs": {
+        "type": "boolean",
+        "default": true,
+        "help": "启用离线 API 文档"
+      },
+      "runner": {
+        "type": "select",
+        "default": "generate",
+        "options": ["generate", "classify", "embed", "score"],
+        "help": "运行模式"
+      },
+      "disable_frontend_multiprocessing": {
+        "type": "boolean",
+        "default": false,
+        "help": "禁用前端多进程"
+      }
+    }
+  },
+  "logging": {
+    "title": "日志与监控",
+    "icon": "📊",
+    "fields": {
+      "disable_log_stats": {
+        "type": "boolean",
+        "default": false,
+        "help": "禁用定期统计日志"
+      },
+      "disable_log_requests": {
+        "type": "boolean",
+        "default": false,
+        "help": "禁用请求日志"
+      },
+      "max_log_len": {
+        "type": "number",
+        "default": null,
+        "help": "最大日志输出长度"
+      },
+      "otlp_traces_endpoint": {
+        "type": "string",
+        "default": null,
+        "help": "OTLP Traces 端点 URL"
+      },
+      "collect_detailed_traces": {
+        "type": "string",
+        "default": null,
+        "help": "收集详细 Traces（逗号分隔模块名）"
+      }
+    }
+  },
+  "env": {
+    "title": "环境变量",
+    "icon": "🔐",
+    "fields": {
+      "VLLM_ALLOW_LONG_MAX_MODEL_LEN": {
+        "type": "boolean",
+        "default": false,
+        "help": "允许设置超过模型限制的 max_model_len"
+      },
+      "VLLM_TEST_IPC_PATH": {
+        "type": "string",
+        "default": null,
+        "help": "测试 IPC 路径"
+      },
+      "VLLM_USAGE_STATS_ENABLED": {
+        "type": "boolean",
+        "default": true,
+        "help": "启用使用统计收集"
+      },
+      "VLLM_CONFIG_FILE": {
+        "type": "string",
+        "default": null,
+        "help": "配置文件路径"
+      },
+      "VLLM_ALLOW_REMOTE_CODE": {
+        "type": "boolean",
+        "default": false,
+        "help": "允许远程代码执行"
+      },
+      "VLLM_MAX_AUDIO_CLIP_FILESIZE_MB": {
+        "type": "number",
+        "default": 25,
+        "help": "Transcriptions API 最大音频文件大小（MB）"
+      },
+      "VLLM_NO_USAGE_STATS": {
+        "type": "boolean",
+        "default": false,
+        "help": "禁用使用统计"
+      },
+      "VLLM_USE_MODELSCOPE": {
+        "type": "boolean",
+        "default": false,
+        "help": "使用 ModelScope 下载模型"
+      },
+      "VLLM_ATTENTION_BACKEND": {
+        "type": "select",
+        "default": null,
+        "options": ["FLASH_ATTN", "FLASHINFER", "XFORMERS", "ROCM_FLASH", "ONE_DNN", "PALLAS"],
+        "help": "注意力后端"
+      },
+      "VLLM_FORCE_CPU_WARMUP": {
+        "type": "boolean",
+        "default": false,
+        "help": "强制 CPU 预热"
+      }
+    }
+  }
+}

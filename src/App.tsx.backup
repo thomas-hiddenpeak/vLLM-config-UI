@@ -1,0 +1,1741 @@
+import React, { useState } from 'react';
+import { observer } from 'mobx-react-lite';
+import { useTranslation } from 'react-i18next';
+import { configStore } from './store';
+import './style.css';
+
+// ========== 类型定义 ==========
+
+interface FieldProps {
+    label: string;
+    value: any;
+    onChange: (value: any) => void;
+    type?: 'text' | 'number' | 'checkbox' | 'select' | 'textarea';
+    options?: { value: string; label: string }[];
+    min?: number;
+    max?: number;
+    step?: number;
+    placeholder?: string;
+    help?: string;
+    disabled?: boolean;
+}
+
+interface CardProps {
+    title: string;
+    children: React.ReactNode;
+    defaultExpanded?: boolean;
+    icon?: string;
+}
+
+// ========== 基础组件 ==========
+
+const FormField: React.FC<FieldProps> = ({
+    label,
+    value,
+    onChange,
+    type = 'text',
+    options = [],
+    min,
+    max,
+    step,
+    placeholder,
+    help,
+    disabled = false,
+}) => {
+    const renderInput = () => {
+        switch (type) {
+            case 'checkbox':
+                return (
+                    <input
+                        type="checkbox"
+                        checked={value}
+                        onChange={(e) => onChange(e.target.checked)}
+                        className="form-checkbox"
+                        disabled={disabled}
+                    />
+                );
+            case 'number':
+                return (
+                    <input
+                        type="number"
+                        value={value}
+                        onChange={(e) => onChange(type === 'number' ? parseFloat(e.target.value) : e.target.value)}
+                        min={min}
+                        max={max}
+                        step={step}
+                        className="form-input"
+                        placeholder={placeholder}
+                        disabled={disabled}
+                    />
+                );
+            case 'select':
+                return (
+                    <select
+                        value={value}
+                        onChange={(e) => onChange(e.target.value)}
+                        className="form-select"
+                        disabled={disabled}
+                    >
+                        {options.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                            </option>
+                        ))}
+                    </select>
+                );
+            case 'textarea':
+                return (
+                    <textarea
+                        value={value}
+                        onChange={(e) => onChange(e.target.value)}
+                        className="form-textarea"
+                        placeholder={placeholder}
+                        disabled={disabled}
+                        rows={3}
+                    />
+                );
+            default:
+                return (
+                    <input
+                        type="text"
+                        value={value}
+                        onChange={(e) => onChange(e.target.value)}
+                        className="form-input"
+                        placeholder={placeholder}
+                        disabled={disabled}
+                    />
+                );
+        }
+    };
+
+    return (
+        <div className="form-field">
+            <label className="form-label">{label}</label>
+            {renderInput()}
+            {help && <small className="form-help">{help}</small>}
+        </div>
+    );
+};
+
+const ConfigCard: React.FC<CardProps> = ({ title, children, defaultExpanded = true, icon = '' }) => {
+    const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+
+    return (
+        <div className="config-card">
+            <div
+                className="config-card-header"
+                onClick={() => setIsExpanded(!isExpanded)}
+            >
+                <h3 className="config-card-title">{icon && <span className="card-icon">{icon}</span>}{title}</h3>
+                <span className={`config-card-toggle ${isExpanded ? 'expanded' : ''}`}>▼</span>
+            </div>
+            {isExpanded && <div className="config-card-body">{children}</div>}
+        </div>
+    );
+};
+
+// ========== ModelScope 搜索模态框组件 ==========
+
+interface ModelScopeModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSelectModel: (model: any) => void;
+}
+
+// 格式化文件大小
+const formatSize = (bytes: number): string => {
+    if (!bytes || bytes === 0) return '未知';
+    const gb = bytes / (1024 * 1024 * 1024);
+    if (gb >= 1000) {
+        return `${(gb / 1024).toFixed(1)}TB`;
+    }
+    if (gb >= 1) {
+        return `${gb.toFixed(1)}GB`;
+    }
+    const mb = bytes / (1024 * 1024);
+    return `${mb.toFixed(0)}MB`;
+};
+
+// 格式化时间戳
+const formatTime = (timestamp: number): string => {
+    if (!timestamp || timestamp === 0) return '未知';
+    // ModelScope 时间戳是秒级
+    const date = new Date(timestamp * 1000);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (days < 1) return '今天';
+    if (days < 7) return `${days}天前`;
+    if (days < 30) return `${Math.floor(days / 7)}周前`;
+    if (days < 365) return `${Math.floor(days / 30)}月前`;
+    return date.getFullYear().toString();
+};
+
+const ModelScopeModal: React.FC<ModelScopeModalProps> = observer(({ isOpen, onClose, onSelectModel }) => {
+    const { t } = useTranslation();
+    const [searchQuery, setSearchQuery] = useState('');
+    const [sortBy, setSortBy] = useState('updated'); // 默认按时间排序
+
+    const handleSearch = async () => {
+        if (searchQuery.trim()) {
+            await configStore.searchModelscope(searchQuery, 1, 20, sortBy);
+        }
+    };
+
+    const handleKeyPress = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            handleSearch();
+        }
+    };
+
+    const handleSortChange = (newSortBy: string) => {
+        setSortBy(newSortBy);
+        if (configStore.modelscopeSearchQuery) {
+            configStore.searchModelscope(configStore.modelscopeSearchQuery, 1, 20, newSortBy);
+        }
+    };
+
+    const handleSelectModel = (model: any) => {
+        onSelectModel(model);
+        onClose();
+    };
+
+    // 分页组件
+    const Pagination = () => (
+        configStore.modelscopeTotalPages > 1 && (
+            <div className="modal-pagination">
+                <span className="pagination-info">
+                    {t('search.modal.pagination.info', { page: configStore.modelscopePage, total: configStore.modelscopeTotalPages, count: configStore.modelscopeTotal })}
+                </span>
+                <div className="pagination-buttons">
+                    <button
+                        className="btn btn-sm btn-secondary"
+                        onClick={() => configStore.prevModelscopePage()}
+                        disabled={configStore.modelscopePage <= 1}
+                    >
+                        {t('search.modal.pagination.prev')}
+                    </button>
+                    <button
+                        className="btn btn-sm btn-secondary"
+                        onClick={() => configStore.nextModelscopePage()}
+                        disabled={configStore.modelscopePage >= configStore.modelscopeTotalPages}
+                    >
+                        {t('search.modal.pagination.next')}
+                    </button>
+                </div>
+            </div>
+        )
+    );
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                    <h2>🔍 {t('search.modal.title')}</h2>
+                    <button className="modal-close" onClick={onClose}>✕</button>
+                </div>
+
+                <div className="modal-search-box">
+                    <input
+                        type="text"
+                        className="search-input"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        placeholder={t('search.modal.placeholder')}
+                        autoFocus
+                    />
+                    <button
+                        className="btn btn-primary btn-search-submit"
+                        onClick={handleSearch}
+                        disabled={configStore.modelscopeLoading}
+                    >
+                        {configStore.modelscopeLoading ? t('search.modal.searching') : t('search.modal.search')}
+                    </button>
+                </div>
+
+                {configStore.modelscopeSearchResults.length > 0 && (
+                    <>
+                        {/* 顶部分页 */}
+                        <Pagination />
+
+                        <div className="modal-sort">
+                            <span className="sort-label">{t('search.modal.sort.label')}</span>
+                            <div className="sort-buttons">
+                                <button
+                                    className={`sort-btn ${sortBy === 'downloads' ? 'active' : ''}`}
+                                    onClick={() => handleSortChange('downloads')}
+                                >
+                                    {t('search.modal.sort.downloads')}
+                                </button>
+                                <button
+                                    className={`sort-btn ${sortBy === 'likes' ? 'active' : ''}`}
+                                    onClick={() => handleSortChange('likes')}
+                                >
+                                    {t('search.modal.sort.likes')}
+                                </button>
+                                <button
+                                    className={`sort-btn ${sortBy === 'updated' ? 'active' : ''}`}
+                                    onClick={() => handleSortChange('updated')}
+                                >
+                                    {t('search.modal.sort.updated')}
+                                </button>
+                                <button
+                                    className={`sort-btn ${sortBy === 'name' ? 'active' : ''}`}
+                                    onClick={() => handleSortChange('name')}
+                                >
+                                    {t('search.modal.sort.name')}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="modal-results">
+                            {configStore.modelscopeSearchResults.map((model: any, index: number) => (
+                                <div
+                                    key={index}
+                                    className="modal-result-item"
+                                    onClick={() => handleSelectModel(model)}
+                                >
+                                    <div className="result-header">
+                                        <span className="result-model-id">{model.model_id}</span>
+                                        <span className="result-task">{model.task}</span>
+                                        <a
+                                            href={`https://modelscope.cn/models/${model.model_id}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="result-link"
+                                            onClick={(e) => e.stopPropagation()}
+                                            title={t('search.modal.view')}
+                                        >
+                                            {t('search.modal.view')}
+                                        </a>
+                                    </div>
+
+                                    <div className="result-details">
+                                        <div className="detail-row">
+                                            <span className="detail-label">{t('search.modal.details.parameters')}</span>
+                                            <span className="detail-value">{model.parameters || t('search.modal.details.unknown')}</span>
+                                            <span className="detail-label">{t('search.modal.details.dtype')}</span>
+                                            <span className="detail-value">{model.dtype || t('search.modal.details.auto')}</span>
+                                            <span className="detail-label">{t('search.modal.details.weight')}</span>
+                                            <span className="detail-value">{formatSize(model.size)}</span>
+                                        </div>
+                                        <div className="detail-row">
+                                            <span className="detail-label">{t('search.modal.details.framework')}</span>
+                                            <span className="detail-value">{model.framework}</span>
+                                            <span className="detail-label">{t('search.modal.details.license')}</span>
+                                            <span className="detail-value">{model.license || t('search.modal.details.unknown')}</span>
+                                            <span className="detail-label">{t('search.modal.details.updated')}</span>
+                                            <span className="detail-value">{formatTime(model.updated)}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    {model.description && model.description.trim() ? (
+                                        <div className="result-description">{model.description}</div>
+                                    ) : null}
+                                    
+                                    <div className="result-meta">
+                                        <span>📥 {model.downloads?.toLocaleString() || 0}</span>
+                                        <span>❤️ {model.likes?.toLocaleString() || 0}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* 底部分页 */}
+                        <Pagination />
+                    </>
+                )}
+
+                {configStore.modelscopeSearchQuery && configStore.modelscopeSearchResults.length === 0 && !configStore.modelscopeLoading && (
+                    <div className="search-empty">{t('search.modal.noResults')}</div>
+                )}
+            </div>
+        </div>
+    );
+});
+
+// ========== 主应用组件 ==========
+
+export const App: React.FC = observer(() => {
+    const { t, i18n } = useTranslation();
+    const [importText, setImportText] = useState('');
+    const [copySuccess, setCopySuccess] = useState(false);
+    const [activeTab, setActiveTab] = useState<'yaml' | 'cli' | 'env'>('yaml');
+    const [showModelScopeModal, setShowModelScopeModal] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
+    const [showQuantModal, setShowQuantModal] = useState(false);
+    const [showMultiNodeAlert, setShowMultiNodeAlert] = useState(false);
+    const [pendingModelId, setPendingModelId] = useState<string>('');
+
+    const changeLanguage = (lng: string) => {
+        i18n.changeLanguage(lng);
+    };
+
+    const downloadYaml = () => {
+        const yamlContent = configStore.yamlConfig;
+        const blob = new Blob([yamlContent], { type: 'text/yaml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'vllm-config.yaml';
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const copyYaml = async () => {
+        try {
+            await navigator.clipboard.writeText(configStore.yamlConfig);
+            setCopySuccess(true);
+            setTimeout(() => setCopySuccess(false), 2000);
+        } catch (err) {
+            console.error('复制失败:', err);
+        }
+    };
+
+    const copyCommandLine = async () => {
+        try {
+            await navigator.clipboard.writeText(configStore.commandLineArgs);
+            setCopySuccess(true);
+            setTimeout(() => setCopySuccess(false), 2000);
+        } catch (err) {
+            console.error('复制失败:', err);
+        }
+    };
+
+    const handleImport = () => {
+        if (configStore.importYaml(importText)) {
+            setImportText('');
+            setShowImportModal(false);
+            alert('配置导入成功！');
+        } else {
+            alert('导入失败，请检查 YAML 格式');
+        }
+    };
+
+    const getPreviewContent = () => {
+        switch (activeTab) {
+            case 'cli':
+                return <code>{configStore.commandLineArgs}</code>;
+            case 'env':
+                const envVars = configStore.environmentVariables;
+                if (Object.keys(envVars).length === 0) {
+                    return <code className="empty">没有自定义环境变量</code>;
+                }
+                return (
+                    <code>
+                        {Object.entries(envVars).map(([key, value]) => (
+                            <div key={key}>export {key}="{value}"</div>
+                        ))}
+                    </code>
+                );
+            default:
+                return <code>{configStore.yamlConfig}</code>;
+        }
+    };
+
+    return (
+        <div className="app-container">
+            {/* 顶部区域：标题 + 显存状态 */}
+            <div className="app-top-bar">
+                <header className="app-header">
+                    <div className="header-content">
+                        <div className="header-title">
+                            <h1>🚀 {t('app.title')}</h1>
+                        </div>
+                        <div className="header-actions">
+                            <div className="language-switcher">
+                                <button
+                                    className={`lang-btn ${i18n.language === 'zh' ? 'active' : ''}`}
+                                    onClick={() => changeLanguage('zh')}
+                                >
+                                    中文
+                                </button>
+                                <button
+                                    className={`lang-btn ${i18n.language === 'en' ? 'active' : ''}`}
+                                    onClick={() => changeLanguage('en')}
+                                >
+                                    EN
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                {/* 显存占用和设备兼容性显示 */}
+                <div className="vram-status-bar">
+                    <div className="vram-info">
+                        <span className="vram-label">{t('vram.title')}</span>
+                        <div className="vram-bar-single">
+                            {/* 64GB 标记线 */}
+                            <div className="vram-bar-marker" style={{ left: '50%' }} title="64GB"></div>
+                            {/* 进度条 */}
+                            <div className="vram-bar-fill-container">
+                                {/* 模型权重部分 - 可点击选择量化 */}
+                                <div 
+                                    className="vram-bar-fill-model clickable"
+                                    style={{ 
+                                        width: `${(configStore.vramUsage.model / 1.28).toFixed(1)}%` 
+                                    }}
+                                    title={`${t('vram.modelWeight')}: ${configStore.vramUsage.model}GB`}
+                                    onClick={() => setShowQuantModal(true)}
+                                ></div>
+                                {/* KV 缓存部分 */}
+                                <div
+                                    className="vram-bar-fill-kv"
+                                    style={{
+                                        width: `${(configStore.vramUsage.kvCache / 1.28).toFixed(1)}%`
+                                    }}
+                                    title={`${t('vram.kvCache')}: ${configStore.vramUsage.kvCache}GB`}
+                                ></div>
+                                {/* 总值标签 */}
+                                <div className="vram-bar-value-overlay">
+                                    {configStore.vramUsage.total > 0 ? `${configStore.vramUsage.total}GB` : '-'}
+                                    {configStore.vramUsage.total > 128 && (
+                                        <span className="vram-overflow-warning"> {t('vram.overflow')}</span>
+                                    )}
+                                </div>
+                            </div>
+                            {/* 刻度标签 */}
+                            <div className="vram-bar-labels">
+                                <span>0GB</span>
+                                <span>64GB</span>
+                                <span>128GB</span>
+                            </div>
+                            {/* 图例 */}
+                            <div className="vram-bar-legend">
+                                <span className="legend-item">
+                                    <span className="legend-color legend-model"></span>
+                                    {t('vram.modelWeight')} ({configStore.vramUsage.model > 0 ? `${configStore.vramUsage.model}GB` : '-'})
+                                    {configStore.quantizationMode !== 'auto' && (
+                                        <span className="legend-quant-hint">
+                                            {' '}{t('vram.quantization.hint', { original: (configStore.vramUsage.model * (2 / configStore.getBytesPerParam())).toFixed(1), quantized: configStore.vramUsage.model })}
+                                        </span>
+                                    )}
+                                    {/* 量化提示 - 内联显示 */}
+                                    {configStore.quantizationMode !== 'auto' && (
+                                        <span className="legend-quant-notice">
+                                            {' '}{t('vram.quantization.notice')}
+                                        </span>
+                                    )}
+                                </span>
+                                <span className="legend-item">
+                                    <span className="legend-color legend-kv"></span>
+                                    {t('vram.kvCache')} ({configStore.vramUsage.kvCache > 0 ? `${configStore.vramUsage.kvCache}GB` : '-'})
+                                </span>
+                                {/* 上下文长度选择 */}
+                                <div className="vram-context-select">
+                                    <span className="context-select-label">{t('vram.context')}</span>
+                                    <select
+                                        className="context-select"
+                                        value={configStore.maxModelLen}
+                                        onChange={(e) => {
+                                            configStore.maxModelLen = parseInt(e.target.value);
+                                        }}
+                                        title={configStore.modelMaxPositionEmbeddings > 0 
+                                            ? `模型最大上下文：${configStore.modelMaxPositionEmbeddings}` 
+                                            : "选择上下文长度"}
+                                    >
+                                        {configStore.modelMaxPositionEmbeddings <= 0 || 512 <= configStore.modelMaxPositionEmbeddings ? (
+                                            <option value={512}>512</option>
+                                        ) : null}
+                                        {configStore.modelMaxPositionEmbeddings <= 0 || 1024 <= configStore.modelMaxPositionEmbeddings ? (
+                                            <option value={1024}>1K</option>
+                                        ) : null}
+                                        {configStore.modelMaxPositionEmbeddings <= 0 || 2048 <= configStore.modelMaxPositionEmbeddings ? (
+                                            <option value={2048}>2K</option>
+                                        ) : null}
+                                        {configStore.modelMaxPositionEmbeddings <= 0 || 4096 <= configStore.modelMaxPositionEmbeddings ? (
+                                            <option value={4096}>4K</option>
+                                        ) : null}
+                                        {configStore.modelMaxPositionEmbeddings <= 0 || 8192 <= configStore.modelMaxPositionEmbeddings ? (
+                                            <option value={8192}>8K</option>
+                                        ) : null}
+                                        {configStore.modelMaxPositionEmbeddings <= 0 || 16384 <= configStore.modelMaxPositionEmbeddings ? (
+                                            <option value={16384}>16K</option>
+                                        ) : null}
+                                        {configStore.modelMaxPositionEmbeddings <= 0 || 32768 <= configStore.modelMaxPositionEmbeddings ? (
+                                            <option value={32768}>32K</option>
+                                        ) : null}
+                                        {configStore.modelMaxPositionEmbeddings <= 0 || 65536 <= configStore.modelMaxPositionEmbeddings ? (
+                                            <option value={65536}>64K</option>
+                                        ) : null}
+                                        {configStore.modelMaxPositionEmbeddings <= 0 || 131072 <= configStore.modelMaxPositionEmbeddings ? (
+                                            <option value={131072}>128K</option>
+                                        ) : null}
+                                        {configStore.modelMaxPositionEmbeddings <= 0 || 262144 <= configStore.modelMaxPositionEmbeddings ? (
+                                            <option value={262144}>256K</option>
+                                        ) : null}
+                                        {configStore.modelMaxPositionEmbeddings <= 0 || 524288 <= configStore.modelMaxPositionEmbeddings ? (
+                                            <option value={524288}>512K</option>
+                                        ) : null}
+                                        {configStore.modelMaxPositionEmbeddings <= 0 || 1048576 <= configStore.modelMaxPositionEmbeddings ? (
+                                            <option value={1048576}>1M</option>
+                                        ) : null}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="vram-devices">
+                        <span className="vram-label">{t('vram.devices')}</span>
+                        <div className="device-list">
+                            {configStore.deviceCompatibility.map((item, index) => (
+                                <div key={index} className={`device-item ${item.compatible ? 'compatible' : 'incompatible'}`}>
+                                    <span className="device-name">{item.device}</span>
+                                    <span className="device-status">
+                                        {item.compatible ? t('vram.deployable') : t('vram.notDeployable')}
+                                        {item.compatible && <span className="device-available"> ({t('vram.remaining')} {item.available.toFixed(1)}GB)</span>}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <main className="app-main app-main-fixed">
+                {/* 左侧 - 配置预览（固定显示） */}
+                <aside className="yaml-preview yaml-preview-fixed-left">
+                    <div className="preview-header">
+                        <h2>{t('preview.title')}</h2>
+                        <button
+                            className="btn btn-sm btn-info modal-trigger-btn"
+                            onClick={() => setShowModelScopeModal(true)}
+                        >
+                            {t('search.button')}
+                        </button>
+                    </div>
+                    <div className="preview-tabs">
+                        <button
+                            className={`preview-tab ${activeTab === 'yaml' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('yaml')}
+                        >
+                            {t('preview.tabs.yaml')}
+                        </button>
+                        <button
+                            className={`preview-tab ${activeTab === 'cli' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('cli')}
+                        >
+                            {t('preview.tabs.cli')}
+                        </button>
+                        <button
+                            className={`preview-tab ${activeTab === 'env' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('env')}
+                        >
+                            {t('preview.tabs.env')}
+                        </button>
+                    </div>
+
+                    <div className="yaml-content">
+                        {getPreviewContent()}
+                    </div>
+
+                    <div className="preview-actions-group">
+                        <div className="action-row">
+                            <button className="btn btn-primary btn-block" onClick={downloadYaml} title={t('actions.downloadYaml')}>
+                                {t('actions.downloadYaml')}
+                            </button>
+                            <button className="btn btn-success btn-block" onClick={copyYaml} title={t('actions.copyYaml')}>
+                                {copySuccess ? t('preview.actions.copied') : t('actions.copyYaml')}
+                            </button>
+                            <button className="btn btn-secondary btn-block" onClick={() => { setActiveTab('cli'); copyCommandLine(); }} title={t('actions.copyCommandLine')}>
+                                {t('actions.copyCommandLine')}
+                            </button>
+                            <button className="btn btn-danger btn-block" onClick={() => configStore.reset()} title={t('actions.reset')}>
+                                {t('actions.reset')}
+                            </button>
+                            <button className="btn btn-secondary btn-block" onClick={() => setShowImportModal(true)} title={t('preview.import.button')}>
+                                {t('actions.import')}
+                            </button>
+                        </div>
+                    </div>
+                </aside>
+
+                {/* 右侧 - 配置表单 */}
+                <div className="config-form config-form-right">
+                    {/* 一、核心模型参数 */}
+                    <ConfigCard title={t('config.model.title')} icon="📦" defaultExpanded={false}>
+                        <FormField
+                            label={t('config.model.name')}
+                            value={configStore.model}
+                            onChange={(v) => (configStore.model = v)}
+                            placeholder={t('config.model.namePlaceholder')}
+                            help={t('config.model.nameHelp')}
+                        />
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.model.tokenizer')}
+                                value={configStore.tokenizer}
+                                onChange={(v) => (configStore.tokenizer = v)}
+                                placeholder={t('config.model.tokenizerPlaceholder')}
+                            />
+                            <FormField
+                                label={t('config.model.dtype')}
+                                value={configStore.dtype}
+                                onChange={(v) => (configStore.dtype = v)}
+                                type="select"
+                                options={[
+                                    { value: 'auto', label: t('config.model.dtype') + ' - Auto' },
+                                    { value: 'half', label: 'Half' },
+                                    { value: 'float16', label: 'Float16' },
+                                    { value: 'bfloat16', label: 'BFloat16' },
+                                    { value: 'float', label: 'Float' },
+                                    { value: 'float32', label: 'Float32' },
+                                ]}
+                            />
+                        </div>
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.model.maxModelLen')}
+                                value={configStore.maxModelLen}
+                                onChange={(v) => {
+                                    if (configStore.modelConfigLoaded && v > configStore.modelMaxPositionEmbeddings) {
+                                        if (window.confirm(t('alerts.contextLimit.warning', { value: v, max: configStore.modelMaxPositionEmbeddings }))) {
+                                            configStore.maxModelLen = v;
+                                        } else {
+                                            configStore.maxModelLen = configStore.modelMaxPositionEmbeddings;
+                                        }
+                                    } else {
+                                        configStore.maxModelLen = v;
+                                    }
+                                }}
+                                type="number"
+                                min={512}
+                                step={512}
+                                help={configStore.modelConfigLoaded ? t('alerts.contextLimit.modelMax', { max: configStore.modelMaxPositionEmbeddings }) : t('config.model.maxModelLenHelp')}
+                            />
+                            <FormField
+                                label={t('config.model.loadFormat')}
+                                value={configStore.loadFormat}
+                                onChange={(v) => (configStore.loadFormat = v)}
+                                type="select"
+                                options={[
+                                    { value: 'auto', label: 'Auto' },
+                                    { value: 'pt', label: 'PyTorch' },
+                                    { value: 'safetensors', label: 'Safetensors' },
+                                    { value: 'npcache', label: 'NumPy Cache' },
+                                    { value: 'dummy', label: 'Dummy' },
+                                    { value: 'tensorizer', label: 'Tensorizer' },
+                                    { value: 'sharded_state', label: 'Sharded State' },
+                                    { value: 'gguf', label: 'GGUF' },
+                                    { value: 'bitsandbytes', label: 'BitsAndBytes' },
+                                ]}
+                            />
+                        </div>
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.model.tokenizerMode')"
+                                value={configStore.tokenizerMode}
+                                onChange={(v) => (configStore.tokenizerMode = v)}
+                                type="select"
+                                options={[
+                                    { value: 'auto', label: '自动 (auto)' },
+                                    { value: 'slow', label: '慢速 (slow)' },
+                                ]}
+                            />
+                            <FormField
+                                label={t('config.model.guidedDecoding')"
+                                value={configStore.guidedDecodingBackend}
+                                onChange={(v) => (configStore.guidedDecodingBackend = v)}
+                                type="select"
+                                options={[
+                                    { value: 'outlines', label: 'Outlines' },
+                                    { value: 'lm-format-enforcer', label: 'LM Format Enforcer' },
+                                ]}
+                            />
+                        </div>
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.model.revision')"
+                                value={configStore.revision}
+                                onChange={(v) => (configStore.revision = v)}
+                                placeholder="master"
+                            />
+                            <FormField
+                                label={t('config.model.downloadDir')"
+                                value={configStore.downloadDir}
+                                onChange={(v) => (configStore.downloadDir = v)}
+                                placeholder="留空使用 HF 默认缓存目录"
+                            />
+                        </div>
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.model.trustRemoteCode')"
+                                value={configStore.trustRemoteCode}
+                                onChange={(v) => (configStore.trustRemoteCode = v)}
+                                type="checkbox"
+                            />
+                            <FormField
+                                label={t('config.model.skipTokenizerInit')"
+                                value={configStore.skipTokenizerInit}
+                                onChange={(v) => (configStore.skipTokenizerInit = v)}
+                                type="checkbox"
+                            />
+                        </div>
+                    </ConfigCard>
+
+                    {/* 二、分布式与并行配置 */}
+                    <ConfigCard title={t('config.distributed.title')} icon="⚡" defaultExpanded={false}>
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.distributed.tensorParallel')"
+                                value={configStore.tensorParallelSize}
+                                onChange={(v) => (configStore.tensorParallelSize = v)}
+                                type="number"
+                                min={1}
+                                max={64}
+                                help="用于张量并行的 GPU 数量 (-tp)"
+                            />
+                            <FormField
+                                label={t('config.distributed.pipelineParallel')"
+                                value={configStore.pipelineParallelSize}
+                                onChange={(v) => (configStore.pipelineParallelSize = v)}
+                                type="number"
+                                min={1}
+                                max={64}
+                                help="用于流水线并行的 GPU 数量 (-pp)"
+                            />
+                        </div>
+                        <FormField
+                            label={t('config.distributed.executorBackend')"
+                            value={configStore.distributedExecutorBackend}
+                            onChange={(v) => (configStore.distributedExecutorBackend = v)}
+                            type="select"
+                            options={[
+                                { value: 'auto', label: '自动 (auto)' },
+                                { value: 'ray', label: 'Ray' },
+                                { value: 'mp', label: '多进程 (mp)' },
+                            ]}
+                            help="分布式服务后端"
+                        />
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.distributed.workerUseRay')"
+                                value={configStore.workerUseRay}
+                                onChange={(v) => (configStore.workerUseRay = v)}
+                                type="checkbox"
+                            />
+                            <FormField
+                                label={t('config.distributed.rayNsight')"
+                                value={configStore.rayWorkersUseNsight}
+                                onChange={(v) => (configStore.rayWorkersUseNsight = v)}
+                                type="checkbox"
+                            />
+                        </div>
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.distributed.disableCustomAllReduce')"
+                                value={configStore.disableCustomAllReduce}
+                                onChange={(v) => (configStore.disableCustomAllReduce = v)}
+                                type="checkbox"
+                            />
+                            <FormField
+                                label={t('config.distributed.maxParallelWorkers')"
+                                value={configStore.maxParallelLoadingWorkers}
+                                onChange={(v) => (configStore.maxParallelLoadingWorkers = v)}
+                                type="number"
+                                min={0}
+                                placeholder="0 为自动"
+                            />
+                        </div>
+                    </ConfigCard>
+
+                    {/* 三、内存与缓存配置 */}
+                    <ConfigCard title={t('config.memory.title')} icon="💾" defaultExpanded={false}>
+                        <FormField
+                            label={t('config.memory.gpuMemoryUtil')"
+                            value={configStore.gpuMemoryUtilization}
+                            onChange={(v) => (configStore.gpuMemoryUtilization = v)}
+                            type="number"
+                            min={0.1}
+                            max={1}
+                            step={0.05}
+                            help={t('config.memory.gpuMemoryUtilHelp')"
+                        />
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.memory.blockSize')"
+                                value={configStore.blockSize}
+                                onChange={(v) => (configStore.blockSize = v)}
+                                type="number"
+                                min={8}
+                                max={2048}
+                                step={8}
+                                help="连续 token 块大小：8/16/32/128/256/512/1024/2048"
+                            />
+                            <FormField
+                                label={t('config.memory.kvCacheDtype')"
+                                value={configStore.kvCacheDtype}
+                                onChange={(v) => (configStore.kvCacheDtype = v)}
+                                type="select"
+                                options={[
+                                    { value: 'auto', label: '自动 (auto)' },
+                                    { value: 'fp8', label: 'FP8' },
+                                    { value: 'fp8_e5m2', label: 'FP8 E5M2' },
+                                    { value: 'fp8_e4m3', label: 'FP8 E4M3' },
+                                ]}
+                            />
+                        </div>
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.memory.swapSpace')"
+                                value={configStore.swapSpace}
+                                onChange={(v) => (configStore.swapSpace = v)}
+                                type="number"
+                                min={0}
+                                max={64}
+                                help={t('config.memory.swapSpaceHelp')"
+                            />
+                            <FormField
+                                label={t('config.memory.cpuOffload')"
+                                value={configStore.cpuOffloadGb}
+                                onChange={(v) => (configStore.cpuOffloadGb = v)}
+                                type="number"
+                                min={0}
+                                max={64}
+                                help={t('config.memory.cpuOffloadHelp')"
+                            />
+                        </div>
+                        <FormField
+                            label={t('config.memory.numGpuBlocks')"
+                            value={configStore.numGpuBlocksOverride || ''}
+                            onChange={(v) =>
+                                (configStore.numGpuBlocksOverride = v ? parseInt(v) : undefined)
+                            }
+                            type="number"
+                            min={1}
+                            placeholder="留空使用自动计算"
+                        />
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.memory.enablePrefixCaching')"
+                                value={configStore.enablePrefixCaching}
+                                onChange={(v) => (configStore.enablePrefixCaching = v)}
+                                type="checkbox"
+                            />
+                            <FormField
+                                label={t('config.memory.disableSlidingWindow')"
+                                value={configStore.disableSlidingWindow}
+                                onChange={(v) => (configStore.disableSlidingWindow = v)}
+                                type="checkbox"
+                            />
+                        </div>
+                    </ConfigCard>
+
+                    {/* 四、调度与批处理配置 */}
+                    <ConfigCard title={t('config.scheduler.title')} icon="📋" defaultExpanded={false}>
+                        <FormField
+                            label={t('config.scheduler.maxNumSeqs')"
+                            value={configStore.maxNumSeqs}
+                            onChange={(v) => (configStore.maxNumSeqs = v)}
+                            type="number"
+                            min={1}
+                            max={1024}
+                            help={t('config.scheduler.maxNumSeqsHelp')"
+                        />
+                        <FormField
+                            label={t('config.scheduler.maxNumBatchedTokens')"
+                            value={configStore.maxNumBatchedTokens || ''}
+                            onChange={(v) =>
+                                (configStore.maxNumBatchedTokens = v ? parseInt(v) : undefined)
+                            }
+                            type="number"
+                            min={1}
+                            placeholder="留空使用默认值"
+                        />
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.scheduler.numSchedulerSteps')"
+                                value={configStore.numSchedulerSteps}
+                                onChange={(v) => (configStore.numSchedulerSteps = v)}
+                                type="number"
+                                min={1}
+                                max={10}
+                            />
+                            <FormField
+                                label={t('config.scheduler.schedulerDelayFactor')"
+                                value={configStore.schedulerDelayFactor}
+                                onChange={(v) => (configStore.schedulerDelayFactor = v)}
+                                type="number"
+                                min={0}
+                                max={1}
+                                step={0.1}
+                            />
+                        </div>
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.scheduler.enableChunkedPrefill')"
+                                value={configStore.enableChunkedPrefill}
+                                onChange={(v) => (configStore.enableChunkedPrefill = v)}
+                                type="checkbox"
+                            />
+                            <FormField
+                                label={t('config.scheduler.preemptionMode')"
+                                value={configStore.preemptionMode}
+                                onChange={(v) => (configStore.preemptionMode = v)}
+                                type="select"
+                                options={[
+                                    { value: '', label: '自动' },
+                                    { value: 'recompute', label: '重计算 (recompute)' },
+                                    { value: 'swap', label: '交换 (swap)' },
+                                ]}
+                            />
+                        </div>
+                    </ConfigCard>
+
+                    {/* 五、量化配置 */}
+                    <ConfigCard title={t('config.quantization.title')} icon="🔧" defaultExpanded={false}>
+                        <FormField
+                            label={t('config.quantization.method')"
+                            value={configStore.quantization}
+                            onChange={(v) => (configStore.quantization = v)}
+                            type="select"
+                            options={[
+                                { value: '', label: '无' },
+                                { value: 'aqlm', label: 'AQLM' },
+                                { value: 'awq', label: 'AWQ' },
+                                { value: 'deepspeedfp', label: 'DeepSpeed FP' },
+                                { value: 'tpu_int8', label: 'TPU INT8' },
+                                { value: 'fp8', label: 'FP8' },
+                                { value: 'fbgemm_fp8', label: 'FBGEMM FP8' },
+                                { value: 'marlin', label: 'Marlin' },
+                                { value: 'gguf', label: 'GGUF' },
+                                { value: 'gptq_marlin_24', label: 'GPTQ Marlin 24' },
+                                { value: 'gptq_marlin', label: 'GPTQ Marlin' },
+                                { value: 'awq_marlin', label: 'AWQ Marlin' },
+                                { value: 'gptq', label: 'GPTQ' },
+                                { value: 'squeezellm', label: 'SqueezeLLM' },
+                                { value: 'compressed-tensors', label: 'Compressed Tensors' },
+                                { value: 'bitsandbytes', label: 'BitsAndBytes' },
+                                { value: 'qqq', label: 'QQQ' },
+                                { value: 'experts_int8', label: 'Experts INT8' },
+                            ]}
+                            help={t('config.quantization.methodHelp')"
+                        />
+                        <FormField
+                            label={t('config.quantization.paramPath')"
+                            value={configStore.quantizationParamPath}
+                            onChange={(v) => (configStore.quantizationParamPath = v)}
+                            placeholder="/path/to/quant-params.json"
+                            help={t('config.quantization.paramPathHelp')"
+                        />
+                        <FormField
+                            label={t('config.quantization.speculativeQuant')"
+                            value={configStore.speculativeModelQuantization}
+                            onChange={(v) => (configStore.speculativeModelQuantization = v)}
+                            type="select"
+                            options={[
+                                { value: '', label: '无' },
+                                { value: 'awq', label: 'AWQ' },
+                                { value: 'gptq', label: 'GPTQ' },
+                                { value: 'fp8', label: 'FP8' },
+                            ]}
+                        />
+                    </ConfigCard>
+
+                    {/* 六、RoPE 与性能优化 */}
+                    <ConfigCard title={t('config.rope.title')} icon="⚙️" defaultExpanded={false}>
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.rope.ropeTheta')"
+                                value={configStore.ropeTheta}
+                                onChange={(v) => (configStore.ropeTheta = v)}
+                                type="number"
+                                min={0}
+                                step={1000}
+                                placeholder="默认由模型决定"
+                            />
+                            <FormField
+                                label={t('config.rope.maxSeqLenCapture')"
+                                value={configStore.maxSeqLenToCapture}
+                                onChange={(v) => (configStore.maxSeqLenToCapture = v)}
+                                type="number"
+                                min={1024}
+                                step={1024}
+                            />
+                        </div>
+                        <FormField
+                            label={t('config.rope.ropeScaling')"
+                            value={configStore.ropeScaling}
+                            onChange={(v) => (configStore.ropeScaling = v)}
+                            type="textarea"
+                            placeholder='例如：{"type":"dynamic","factor":2.0}'
+                            help={t('config.rope.ropeScalingHelp')"
+                        />
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.rope.enforceEager')"
+                                value={configStore.enforceEager}
+                                onChange={(v) => (configStore.enforceEager = v)}
+                                type="checkbox"
+                            />
+                            <FormField
+                                label={t('config.rope.useV2BlockManager')"
+                                value={configStore.useV2BlockManager}
+                                onChange={(v) => (configStore.useV2BlockManager = v)}
+                                type="checkbox"
+                            />
+                        </div>
+                    </ConfigCard>
+
+                    {/* 七、Tokenizer 池化 */}
+                    <ConfigCard title={t('config.tokenizerPool.title')} icon="🔄" defaultExpanded={false}>
+                        <FormField
+                            label={t('config.tokenizerPool.poolSize')"
+                            value={configStore.tokenizerPoolSize}
+                            onChange={(v) => (configStore.tokenizerPoolSize = v)}
+                            type="number"
+                            min={0}
+                            max={32}
+                            help={t('config.tokenizerPool.poolSizeHelp')"
+                        />
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.tokenizerPool.poolType')"
+                                value={configStore.tokenizerPoolType}
+                                onChange={(v) => (configStore.tokenizerPoolType = v)}
+                                type="select"
+                                options={[
+                                    { value: 'ray', label: 'Ray' },
+                                    { value: 'mp', label: '多进程' },
+                                ]}
+                            />
+                            <FormField
+                                label={t('config.tokenizerPool.poolExtraConfig')"
+                                value={configStore.tokenizerPoolExtraConfig}
+                                onChange={(v) => (configStore.tokenizerPoolExtraConfig = v)}
+                                placeholder="JSON 格式配置"
+                            />
+                        </div>
+                    </ConfigCard>
+
+                    {/* 八、多模态配置 */}
+                    <ConfigCard title={t('config.multimodal.title')} icon="🖼️" defaultExpanded={false}>
+                        <FormField
+                            label={t('config.multimodal.limitMmPerPrompt')"
+                            value={configStore.limitMmPerPrompt}
+                            onChange={(v) => (configStore.limitMmPerPrompt = v)}
+                            placeholder="例如：image=16,video=2"
+                            help={t('config.multimodal.limitMmPerPromptHelp')"
+                        />
+                    </ConfigCard>
+
+                    {/* 九、LoRA 适配器配置 */}
+                    <ConfigCard title={t('config.lora.title')} icon="🔌" defaultExpanded={false}>
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.lora.enableLora')"
+                                value={configStore.enableLora}
+                                onChange={(v) => (configStore.enableLora = v)}
+                                type="checkbox"
+                            />
+                            <FormField
+                                label={t('config.lora.fullyShardedLoras')"
+                                value={configStore.fullyShardedLoras}
+                                onChange={(v) => (configStore.fullyShardedLoras = v)}
+                                type="checkbox"
+                            />
+                        </div>
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.lora.maxLoras')"
+                                value={configStore.maxLoras}
+                                onChange={(v) => (configStore.maxLoras = v)}
+                                type="number"
+                                min={1}
+                                max={100}
+                            />
+                            <FormField
+                                label={t('config.lora.maxLoraRank')"
+                                value={configStore.maxLoraRank}
+                                onChange={(v) => (configStore.maxLoraRank = v)}
+                                type="number"
+                                min={1}
+                                max={256}
+                            />
+                        </div>
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.lora.loraExtraVocabSize')"
+                                value={configStore.loraExtraVocabSize}
+                                onChange={(v) => (configStore.loraExtraVocabSize = v)}
+                                type="number"
+                                min={0}
+                            />
+                            <FormField
+                                label={t('config.lora.loraDtype')"
+                                value={configStore.loraDtype}
+                                onChange={(v) => (configStore.loraDtype = v)}
+                                type="select"
+                                options={[
+                                    { value: 'auto', label: '自动 (auto)' },
+                                    { value: 'float16', label: 'float16' },
+                                    { value: 'bfloat16', label: 'bfloat16' },
+                                    { value: 'float32', label: 'float32' },
+                                ]}
+                            />
+                        </div>
+                        <FormField
+                            label={t('config.lora.longLoraScaling')"
+                            value={configStore.longLoraScalingFactors}
+                            onChange={(v) => (configStore.longLoraScalingFactors = v)}
+                            placeholder="例如：1.0,2.0,4.0"
+                        />
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.lora.maxCpuLoras')"
+                                value={configStore.maxCpuLoras || ''}
+                                onChange={(v) =>
+                                    (configStore.maxCpuLoras = v ? parseInt(v) : undefined)
+                                }
+                                type="number"
+                                min={1}
+                            />
+                            <FormField
+                                label={t('config.lora.qloraAdapterPath')"
+                                value={configStore.qloraAdapterNameOrPath}
+                                onChange={(v) => (configStore.qloraAdapterNameOrPath = v)}
+                                placeholder="适配器名称或路径"
+                            />
+                        </div>
+                    </ConfigCard>
+
+                    {/* 十、Prompt Adapter 配置 */}
+                    <ConfigCard title={t('config.promptAdapter.title')} icon="📝" defaultExpanded={false}>
+                        <FormField
+                            label={t('config.promptAdapter.enablePromptAdapter')"
+                            value={configStore.enablePromptAdapter}
+                            onChange={(v) => (configStore.enablePromptAdapter = v)}
+                            type="checkbox"
+                        />
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.promptAdapter.maxPromptAdapters')"
+                                value={configStore.maxPromptAdapters}
+                                onChange={(v) => (configStore.maxPromptAdapters = v)}
+                                type="number"
+                                min={1}
+                            />
+                            <FormField
+                                label={t('config.promptAdapter.maxPromptAdapterToken')"
+                                value={configStore.maxPromptAdapterToken}
+                                onChange={(v) => (configStore.maxPromptAdapterToken = v)}
+                                type="number"
+                                min={0}
+                            />
+                        </div>
+                    </ConfigCard>
+
+                    {/* 十一、推测解码配置 */}
+                    <ConfigCard title={t('config.speculative.title')} icon="🔮" defaultExpanded={false}>
+                        <FormField
+                            label={t('config.speculative.speculativeModel')"
+                            value={configStore.speculativeModel}
+                            onChange={(v) => (configStore.speculativeModel = v)}
+                            placeholder={t('config.speculative.speculativeModelPlaceholder')"
+                        />
+                        <FormField
+                            label={t('config.speculative.numSpeculativeTokens')"
+                            value={configStore.numSpeculativeTokens}
+                            onChange={(v) => (configStore.numSpeculativeTokens = v)}
+                            type="number"
+                            min={0}
+                            max={10}
+                        />
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.speculative.speculativeMaxModelLen')"
+                                value={configStore.speculativeMaxModelLen || ''}
+                                onChange={(v) =>
+                                    (configStore.speculativeMaxModelLen = v ? parseInt(v) : undefined)
+                                }
+                                type="number"
+                                min={512}
+                            />
+                            <FormField
+                                label={t('config.speculative.speculativeDisableByBatchSize')"
+                                value={configStore.speculativeDisableByBatchSize || ''}
+                                onChange={(v) =>
+                                    (configStore.speculativeDisableByBatchSize = v ? parseInt(v) : undefined)
+                                }
+                                type="number"
+                                min={0}
+                            />
+                        </div>
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.speculative.ngramPromptLookupMax')"
+                                value={configStore.ngramPromptLookupMax}
+                                onChange={(v) => (configStore.ngramPromptLookupMax = v)}
+                                type="number"
+                                min={0}
+                            />
+                            <FormField
+                                label={t('config.speculative.ngramPromptLookupMin')"
+                                value={configStore.ngramPromptLookupMin}
+                                onChange={(v) => (configStore.ngramPromptLookupMin = v)}
+                                type="number"
+                                min={0}
+                            />
+                        </div>
+                        <FormField
+                            label={t('config.speculative.specDecodingAcceptanceMethod')"
+                            value={configStore.specDecodingAcceptanceMethod}
+                            onChange={(v) => (configStore.specDecodingAcceptanceMethod = v)}
+                            type="select"
+                            options={[
+                                { value: 'rejection_sampler', label: '拒绝采样 (rejection_sampler)' },
+                                { value: 'typical_acceptance_sampler', label: '典型接受采样 (typical_acceptance_sampler)' },
+                            ]}
+                        />
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.speculative.typicalAcceptanceThreshold')"
+                                value={configStore.typicalAcceptanceSamplerPosteriorThreshold}
+                                onChange={(v) => (configStore.typicalAcceptanceSamplerPosteriorThreshold = v)}
+                                type="number"
+                                min={0}
+                                max={1}
+                                step={0.01}
+                            />
+                            <FormField
+                                label={t('config.speculative.typicalAcceptanceAlpha')"
+                                value={configStore.typicalAcceptanceSamplerPosteriorAlpha}
+                                onChange={(v) => (configStore.typicalAcceptanceSamplerPosteriorAlpha = v)}
+                                type="number"
+                                min={0}
+                                max={1}
+                                step={0.1}
+                            />
+                        </div>
+                        <FormField
+                            label={t('config.speculative.disableLogprobsSpecDecoding')"
+                            value={configStore.disableLogprobsDuringSpecDecoding}
+                            onChange={(v) => (configStore.disableLogprobsDuringSpecDecoding = v)}
+                            type="checkbox"
+                        />
+                    </ConfigCard>
+
+                    {/* 十二、日志与监控配置 */}
+                    <ConfigCard title={t('config.logging.title')} icon="📊" defaultExpanded={false}>
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.logging.disableLogStats')"
+                                value={configStore.disableLogStats}
+                                onChange={(v) => (configStore.disableLogStats = v)}
+                                type="checkbox"
+                            />
+                            <FormField
+                                label={t('config.logging.disableLogRequests')"
+                                value={configStore.disableLogRequests}
+                                onChange={(v) => (configStore.disableLogRequests = v)}
+                                type="checkbox"
+                            />
+                        </div>
+                        <FormField
+                            label={t('config.logging.maxLogprobs')"
+                            value={configStore.maxLogprobs}
+                            onChange={(v) => (configStore.maxLogprobs = v)}
+                            type="number"
+                            min={1}
+                            max={100}
+                        />
+                        <FormField
+                            label={t('config.logging.otlpTracesEndpoint')"
+                            value={configStore.otlpTracesEndpoint}
+                            onChange={(v) => (configStore.otlpTracesEndpoint = v)}
+                            placeholder="http://localhost:4317"
+                        />
+                        <FormField
+                            label={t('config.logging.collectDetailedTraces')"
+                            value={configStore.collectDetailedTraces}
+                            onChange={(v) => (configStore.collectDetailedTraces = v)}
+                            type="select"
+                            options={[
+                                { value: '', label: '无' },
+                                { value: 'model', label: '模型 (model)' },
+                                { value: 'worker', label: 'Worker (worker)' },
+                                { value: 'all', label: '全部 (all)' },
+                            ]}
+                        />
+                    </ConfigCard>
+
+                    {/* 十三、其他配置 */}
+                    <ConfigCard title={t('config.other.title')} icon="🔧" defaultExpanded={false}>
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.other.device')"
+                                value={configStore.device}
+                                onChange={(v) => (configStore.device = v)}
+                                type="select"
+                                options={[
+                                    { value: 'auto', label: '自动 (auto)' },
+                                    { value: 'cuda', label: 'CUDA' },
+                                    { value: 'neuron', label: 'Neuron' },
+                                    { value: 'cpu', label: 'CPU' },
+                                    { value: 'openvino', label: 'OpenVINO' },
+                                    { value: 'tpu', label: 'TPU' },
+                                    { value: 'xpu', label: 'XPU' },
+                                ]}
+                            />
+                            <FormField
+                                label={t('config.other.seed')"
+                                value={configStore.seed}
+                                onChange={(v) => (configStore.seed = v)}
+                                type="number"
+                                min={0}
+                            />
+                        </div>
+                        <FormField
+                            label={t('config.other.servedModelName')"
+                            value={configStore.servedModelName}
+                            onChange={(v) => (configStore.servedModelName = v)}
+                            placeholder={t('config.other.servedModelNamePlaceholder')"
+                        />
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.other.ignorePatterns')"
+                                value={configStore.ignorePatterns}
+                                onChange={(v) => (configStore.ignorePatterns = v)}
+                                placeholder="例如：*.pt,*.bin"
+                            />
+                            <FormField
+                                label={t('config.other.modelLoaderExtraConfig')"
+                                value={configStore.modelLoaderExtraConfig}
+                                onChange={(v) => (configStore.modelLoaderExtraConfig = v)}
+                                placeholder="JSON 格式配置"
+                            />
+                        </div>
+                        <FormField
+                            label={t('config.other.engineUseRay')"
+                            value={configStore.engineUseRay}
+                            onChange={(v) => (configStore.engineUseRay = v)}
+                            type="checkbox"
+                        />
+                    </ConfigCard>
+
+                    {/* 十四、API 服务器配置 */}
+                    <ConfigCard title={t('config.apiServer.title')} icon="🌐" defaultExpanded={false}>
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.apiServer.host')"
+                                value={configStore.host}
+                                onChange={(v) => (configStore.host = v)}
+                                placeholder="0.0.0.0"
+                            />
+                            <FormField
+                                label={t('config.apiServer.port')"
+                                value={configStore.port}
+                                onChange={(v) => (configStore.port = v)}
+                                type="number"
+                                min={1}
+                                max={65535}
+                            />
+                        </div>
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.apiServer.sslKeyfile')"
+                                value={configStore.sslKeyfile}
+                                onChange={(v) => (configStore.sslKeyfile = v)}
+                                placeholder="/path/to/key.pem"
+                            />
+                            <FormField
+                                label={t('config.apiServer.sslCertfile')"
+                                value={configStore.sslCertfile}
+                                onChange={(v) => (configStore.sslCertfile = v)}
+                                placeholder="/path/to/cert.pem"
+                            />
+                        </div>
+                        <FormField
+                            label={t('config.apiServer.apiKey')"
+                            value={configStore.apiKey}
+                            onChange={(v) => (configStore.apiKey = v)}
+                            type="text"
+                            placeholder={t('config.apiServer.apiKeyPlaceholder')"
+                        />
+                        <FormField
+                            label={t('config.apiServer.chatTemplate')"
+                            value={configStore.chatTemplate}
+                            onChange={(v) => (configStore.chatTemplate = v)}
+                            type="textarea"
+                            placeholder="Jinja2 模板字符串或文件路径"
+                        />
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.apiServer.chatTemplateContentFormat')"
+                                value={configStore.chatTemplateContentFormat}
+                                onChange={(v) => (configStore.chatTemplateContentFormat = v)}
+                                type="select"
+                                options={[
+                                    { value: 'auto', label: '自动 (auto)' },
+                                    { value: 'string', label: '字符串 (string)' },
+                                    { value: 'openai', label: 'OpenAI 格式' },
+                                ]}
+                            />
+                            <FormField
+                                label={t('config.apiServer.generationConfig')"
+                                value={configStore.generationConfig}
+                                onChange={(v) => (configStore.generationConfig = v)}
+                                placeholder="设为 vllm 禁用模型的 generation_config.json"
+                            />
+                        </div>
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.apiServer.enableRequestIdHeaders')"
+                                value={configStore.enableRequestIdHeaders}
+                                onChange={(v) => (configStore.enableRequestIdHeaders = v)}
+                                type="checkbox"
+                            />
+                            <FormField
+                                label={t('config.apiServer.enableOfflineDocs')"
+                                value={configStore.enableOfflineDocs}
+                                onChange={(v) => (configStore.enableOfflineDocs = v)}
+                                type="checkbox"
+                            />
+                        </div>
+                        <FormField
+                            label={t('config.apiServer.runner')"
+                            value={configStore.runner}
+                            onChange={(v) => (configStore.runner = v)}
+                            type="select"
+                            options={[
+                                { value: '', label: '默认' },
+                                { value: 'pooling', label: 'Pooling (用于嵌入模型)' },
+                            ]}
+                        />
+                    </ConfigCard>
+
+                    {/* 十五、环境变量配置 */}
+                    <ConfigCard title={t('config.env.title')} icon="🔐" defaultExpanded={false}>
+                        <FormField
+                            label={t('config.env.maxAudioClipSize')"
+                            value={configStore.envVllmMaxAudioClipFilesizeMb}
+                            onChange={(v) => (configStore.envVllmMaxAudioClipFilesizeMb = v)}
+                            type="number"
+                            min={1}
+                            max={1000}
+                            help={t('config.env.maxAudioClipSizeHelp')"
+                        />
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.env.noUsageStats')"
+                                value={configStore.envVllmNoUsageStats}
+                                onChange={(v) => (configStore.envVllmNoUsageStats = v)}
+                                type="checkbox"
+                            />
+                            <FormField
+                                label={t('config.env.usageStatsEnabled')"
+                                value={configStore.envVllmUsageStatsEnabled}
+                                onChange={(v) => (configStore.envVllmUsageStatsEnabled = v)}
+                                type="checkbox"
+                            />
+                        </div>
+                        <div className="form-row">
+                            <FormField
+                                label={t('config.env.testIpcPath')"
+                                value={configStore.envVllmTestIpcPath || ''}
+                                onChange={(v) =>
+                                    (configStore.envVllmTestIpcPath = v || undefined)
+                                }
+                                placeholder="/tmp/vllm-test-ipc"
+                            />
+                            <FormField
+                                label={t('config.env.configFile')"
+                                value={configStore.envVllmConfigFile || ''}
+                                onChange={(v) =>
+                                    (configStore.envVllmConfigFile = v || undefined)
+                                }
+                                placeholder="/path/to/config.yaml"
+                            />
+                        </div>
+                        <FormField
+                            label={t('config.env.allowRemoteCode')"
+                            value={configStore.envVllmAllowRemoteCode}
+                            onChange={(v) => (configStore.envVllmAllowRemoteCode = v)}
+                            type="checkbox"
+                        />
+                    </ConfigCard>
+                </div>
+            </main>
+
+            {/* ModelScope 搜索模态框 */}
+            <ModelScopeModal
+                isOpen={showModelScopeModal}
+                onClose={() => setShowModelScopeModal(false)}
+                onSelectModel={(model) => {
+                    // 检查模型大小
+                    const modelSizeGB = model.size ? model.size / (1024 * 1024 * 1024) : 0;
+                    
+                    if (modelSizeGB > 128) {
+                        // 大于 128GB，先检查 4bit 量化后是否仍然超限
+                        const sizeAfter4Bit = modelSizeGB * 0.25; // 4bit 是 FP16 的 1/4
+                        if (sizeAfter4Bit > 128) {
+                            // 4bit 量化后仍然超过 128GB，提示多机编排
+                            setPendingModelId(model.model_id);
+                            setShowMultiNodeAlert(true);
+                        } else {
+                            // 4bit 量化后可以放下，弹出量化选择
+                            setPendingModelId(model.model_id);
+                            setShowQuantModal(true);
+                        }
+                    } else {
+                        // 小于 128GB，直接选择
+                        configStore.selectModel(model.model_id);
+                    }
+                    setShowModelScopeModal(false);
+                }}
+            />
+
+            {/* 多机编排提示 */}
+            <div className={`modal-overlay ${showMultiNodeAlert ? 'modal-open' : ''}`} onClick={() => setShowMultiNodeAlert(false)} style={{ display: showMultiNodeAlert ? 'flex' : 'none' }}>
+                <div className="modal-content modal-alert" onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-header">
+                        <h2>{t('alerts.multiNode.title')}</h2>
+                        <button className="modal-close" onClick={() => setShowMultiNodeAlert(false)}>✕</button>
+                    </div>
+                    <div className="modal-body">
+                        <p className="modal-message">
+                            {t('alerts.multiNode.message')}
+                        </p>
+                        <p className="modal-message">
+                            <strong>{t('alerts.multiNode.suggestions')}</strong>
+                        </p>
+                        <ul className="modal-suggestions">
+                            <li>{t('alerts.multiNode.suggestion1')}</li>
+                            <li>{t('alerts.multiNode.suggestion2')}</li>
+                            <li>{t('alerts.multiNode.suggestion3')}</li>
+                        </ul>
+                    </div>
+                    <div className="modal-footer">
+                        <button className="btn btn-secondary" onClick={() => setShowMultiNodeAlert(false)}>
+                            {t('actions.close')}
+                        </button>
+                        <button className="btn btn-primary" onClick={() => {
+                            setShowMultiNodeAlert(false);
+                            if (pendingModelId) {
+                                configStore.selectModel(pendingModelId);
+                                setPendingModelId('');
+                            }
+                        }}>
+                            {t('actions.keepModel')}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* 导入配置模态框 */}
+            <div className={`modal-overlay ${showImportModal ? 'modal-open' : ''}`} onClick={() => setShowImportModal(false)} style={{ display: showImportModal ? 'flex' : 'none' }}>
+                <div className="modal-content modal-import" onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-header">
+                        <h2>{t('preview.import.title')}</h2>
+                        <button className="modal-close" onClick={() => setShowImportModal(false)}>✕</button>
+                    </div>
+                    <div className="modal-body">
+                        <p className="modal-hint">在此粘贴 YAML 配置以导入到当前配置中</p>
+                        <textarea
+                            className="import-textarea-full"
+                            value={importText}
+                            onChange={(e) => setImportText(e.target.value)}
+                            placeholder="model: Qwen/Qwen2.5-7B-Instruct&#10;engine_args:&#10;  gpu_memory_utilization: 0.9&#10;  max_model_len: 4096"
+                        />
+                    </div>
+                    <div className="modal-footer">
+                        <button className="btn btn-secondary" onClick={() => setShowImportModal(false)}>
+                            取消
+                        </button>
+                        <button className="btn btn-primary" onClick={handleImport}>
+                            导入配置
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* 量化选择模态框 */}
+            <div className={`modal-overlay ${showQuantModal ? 'modal-open' : ''}`} onClick={() => setShowQuantModal(false)} style={{ display: showQuantModal ? 'flex' : 'none' }}>
+                <div className="modal-content modal-quant" onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-header">
+                        <h2>{t('quantization.modal.title')}</h2>
+                        <button className="modal-close" onClick={() => setShowQuantModal(false)}>✕</button>
+                    </div>
+                    <div className="modal-body">
+                        <p className="modal-hint">{t('quantization.modal.hint')}/p>
+                        <div className="quant-options">
+                            <label className={`quant-option ${configStore.quantizationMode === 'auto' ? 'active' : ''}`}>
+                                <input
+                                    type="radio"
+                                    name="quantization"
+                                    value="auto"
+                                    checked={configStore.quantizationMode === 'auto'}
+                                    onChange={(e) => { configStore.quantizationMode = e.target.value; }}
+                                />
+                                <div className="option-content">
+                                    <span className="option-name">{t('quantization.options.auto.name')}</span>
+                                    <span className="option-desc">{t('quantization.options.auto.desc')}</span>
+                                </div>
+                            </label>
+                            <label className={`quant-option ${configStore.quantizationMode === 'bf16' ? 'active' : ''}`}>
+                                <input
+                                    type="radio"
+                                    name="quantization"
+                                    value="bf16"
+                                    checked={configStore.quantizationMode === 'bf16'}
+                                    onChange={(e) => { configStore.quantizationMode = e.target.value; }}
+                                />
+                                <div className="option-content">
+                                    <span className="option-name">{t('quantization.options.bf16.name')}</span>
+                                    <span className="option-desc">{t('quantization.options.bf16.desc')}</span>
+                                </div>
+                            </label>
+                            <label className={`quant-option ${configStore.quantizationMode === 'int8' ? 'active' : ''}`}>
+                                <input
+                                    type="radio"
+                                    name="quantization"
+                                    value="int8"
+                                    checked={configStore.quantizationMode === 'int8'}
+                                    onChange={(e) => { configStore.quantizationMode = e.target.value; }}
+                                />
+                                <div className="option-content">
+                                    <span className="option-name">{t('quantization.options.fp8.name')}</span>
+                                    <span className="option-desc">{t('quantization.options.fp8.desc')}</span>
+                                </div>
+                            </label>
+                            <label className={`quant-option ${configStore.quantizationMode === 'int4' ? 'active' : ''}`}>
+                                <input
+                                    type="radio"
+                                    name="quantization"
+                                    value="int4"
+                                    checked={configStore.quantizationMode === 'int4'}
+                                    onChange={(e) => { configStore.quantizationMode = e.target.value; }}
+                                />
+                                <div className="option-content">
+                                    <span className="option-name">{t('quantization.options.int4.name')}</span>
+                                    <span className="option-desc">{t('quantization.options.int4.desc')}</span>
+                                </div>
+                            </label>
+                        </div>
+                        <div className="quant-preview">
+                            <p>{t('quantization.modal.currentUsage')}strong>{configStore.vramUsage.model}GB</strong> (模型) + {configStore.vramUsage.kvCache}GB (KV 缓存) = <strong>{configStore.vramUsage.total}GB</strong> (总计)</p>
+                        </div>
+                    </div>
+                    <div className="modal-footer">
+                        <button className="btn btn-secondary" onClick={() => setShowQuantModal(false)}>
+                            取消
+                        </button>
+                        <button className="btn btn-primary" onClick={() => setShowQuantModal(false)}>
+                            确认
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <footer className="app-footer">
+                <p>基于 ALTAI 构建 | Powered by WebCell</p>
+            </footer>
+        </div>
+    );
+});

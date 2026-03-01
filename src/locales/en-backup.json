@@ -1,0 +1,310 @@
+{
+  "app": {
+    "title": "vLLM Configuration Generator",
+    "subtitle": "Full support for vLLM serve startup parameters and environment variables",
+    "footer": "Built on ALTAI | Powered by WebCell"
+  },
+  "preview": {
+    "title": "Configuration Preview",
+    "tabs": {
+      "yaml": "YAML",
+      "cli": "Command Line",
+      "env": "Environment Variables"
+    },
+    "actions": {
+      "copy": "Copy",
+      "copied": "Copied",
+      "download": "Download"
+    },
+    "import": {
+      "title": "Import Configuration",
+      "placeholder": "Paste YAML configuration here to import...",
+      "button": "Import Configuration",
+      "success": "Configuration imported successfully!",
+      "error": "Import failed, please check YAML format"
+    }
+  },
+  "search": {
+    "button": "🔍 Search Models",
+    "modal": {
+      "title": "ModelScope Model Search",
+      "placeholder": "Enter model name, e.g., Qwen2.5, ChatGLM3, MiniMax/MiniMax-M2.5",
+      "search": "Search",
+      "searching": "Searching...",
+      "noResults": "No models found",
+      "sort": {
+        "label": "Sort by:",
+        "downloads": "📥 Downloads",
+        "likes": "❤️ Likes",
+        "updated": "🕐 Updated",
+        "name": "🔤 Name"
+      },
+      "pagination": {
+        "info": "Page {{page}} / {{total}} ({{count}} models)",
+        "prev": "← Previous",
+        "next": "Next →"
+      },
+      "details": {
+        "parameters": "Parameters:",
+        "dtype": "Precision:",
+        "weight": "Weight:",
+        "framework": "Framework:",
+        "license": "License:",
+        "updated": "Published:",
+        "unknown": "Unknown",
+        "auto": "Auto"
+      },
+      "view": "🔗 View"
+    }
+  },
+  "vram": {
+    "title": "📊 VRAM Usage",
+    "modelWeight": "Model Weights",
+    "kvCache": "KV Cache",
+    "total": "Total",
+    "context": "📝 Context",
+    "devices": "🖥️ Device Compatibility",
+    "deployable": "✅ Deployable",
+    "notDeployable": "❌ Insufficient VRAM",
+    "remaining": "Remaining",
+    "overflow": "⚠️ Overflow",
+    "quantization": {
+      "hint": "(Original: {{original}}GB → Quantized: {{quantized}}GB)",
+      "notice": "⚠️ Ensure quantized weights are downloaded or quantize manually"
+    }
+  },
+  "config": {
+    "model": {
+      "title": "Core Model Configuration",
+      "icon": "📦",
+      "name": "Model Name (model)",
+      "namePlaceholder": "e.g., Qwen/Qwen2.5-7B-Instruct",
+      "nameHelp": "HuggingFace or ModelScope model path",
+      "tokenizer": "Tokenizer (tokenizer)",
+      "tokenizerPlaceholder": "Leave empty to use model's default tokenizer",
+      "dtype": "Data Type (dtype)",
+      "maxModelLen": "Max Model Length (max-model-len)",
+      "maxModelLenHelp": "Maximum sequence length the model can handle",
+      "loadFormat": "Load Format (load-format)",
+      "tokenizerMode": "Tokenizer Mode (tokenizer-mode)",
+      "guidedDecoding": "Guided Decoding Backend (guided-decoding-backend)",
+      "revision": "Revision (revision)",
+      "downloadDir": "Download Directory (download-dir)",
+      "trustRemoteCode": "Trust Remote Code (trust-remote-code)",
+      "skipTokenizerInit": "Skip Tokenizer Init (skip-tokenizer-init)"
+    },
+    "distributed": {
+      "title": "Distributed & Parallel Configuration",
+      "icon": "⚡",
+      "tensorParallel": "Tensor Parallel Size (tensor-parallel-size)",
+      "tensorParallelHelp": "Number of GPUs for tensor parallelism",
+      "pipelineParallel": "Pipeline Parallel Size (pipeline-parallel-size)",
+      "pipelineParallelHelp": "Number of GPUs for pipeline parallelism",
+      "executorBackend": "Distributed Executor Backend (distributed-executor-backend)",
+      "workerUseRay": "Worker Use Ray (worker-use-ray)",
+      "rayNsight": "Ray Worker Nsight (ray-workers-use-nsight)",
+      "disableCustomAllReduce": "Disable Custom AllReduce (disable-custom-all-reduce)",
+      "maxParallelWorkers": "Max Parallel Loading Workers"
+    },
+    "memory": {
+      "title": "Memory & Cache Configuration",
+      "icon": "💾",
+      "gpuMemoryUtil": "GPU Memory Utilization (gpu-memory-utilization)",
+      "gpuMemoryUtilHelp": "GPU memory ratio for KV cache (0.1-1.0)",
+      "blockSize": "Block Size (block-size)",
+      "kvCacheDtype": "KV Cache Data Type (kv-cache-dtype)",
+      "swapSpace": "Swap Space (swap-space)",
+      "swapSpaceHelp": "CPU swap space per GPU (GiB)",
+      "cpuOffload": "CPU Offload Space (cpu-offload-gb)",
+      "cpuOffloadHelp": "Space to offload to CPU per GPU (GiB)",
+      "numGpuBlocks": "GPU Blocks Override (num-gpu-blocks-override)",
+      "enablePrefixCaching": "Enable Prefix Caching (enable-prefix-caching)",
+      "disableSlidingWindow": "Disable Sliding Window (disable-sliding-window)"
+    },
+    "scheduler": {
+      "title": "Scheduler & Batch Configuration",
+      "icon": "📋",
+      "maxNumSeqs": "Max Num Seqs (max-num-seqs)",
+      "maxNumSeqsHelp": "Maximum number of sequences per iteration",
+      "maxNumBatchedTokens": "Max Num Batched Tokens (max-num-batched-tokens)",
+      "numSchedulerSteps": "Num Scheduler Steps (num-scheduler-steps)",
+      "schedulerDelayFactor": "Scheduler Delay Factor (scheduler-delay-factor)",
+      "enableChunkedPrefill": "Enable Chunked Prefill (enable-chunked-prefill)",
+      "preemptionMode": "Preemption Mode (preemption-mode)"
+    },
+    "quantization": {
+      "title": "Quantization Configuration",
+      "icon": "🔧",
+      "method": "Quantization Method (quantization)",
+      "methodHelp": "Select quantization method to reduce VRAM usage",
+      "paramPath": "Quantization Param Path (quantization-param-path)",
+      "paramPathHelp": "Path to scaling factor JSON file for FP8 quantization",
+      "speculativeQuant": "Speculative Model Quantization (speculative-model-quantization)"
+    },
+    "rope": {
+      "title": "RoPE & Performance Optimization",
+      "icon": "⚙️",
+      "ropeTheta": "RoPE Theta (rope-theta)",
+      "maxSeqLenCapture": "Max Seq Len to Capture (max-seq-len-to-capture)",
+      "ropeScaling": "RoPE Scaling (rope-scaling)",
+      "ropeScalingHelp": "JSON format RoPE scaling configuration",
+      "enforceEager": "Enforce Eager Mode (enforce-eager)",
+      "useV2BlockManager": "Use V2 Block Manager (use-v2-block-manager)"
+    },
+    "tokenizerPool": {
+      "title": "Tokenizer Pooling",
+      "icon": "🔄",
+      "poolSize": "Tokenizer Pool Size (tokenizer-pool-size)",
+      "poolSizeHelp": "0 for synchronous tokenization",
+      "poolType": "Pool Type (tokenizer-pool-type)",
+      "poolExtraConfig": "Pool Extra Config (tokenizer-pool-extra-config)"
+    },
+    "multimodal": {
+      "title": "Multi-modal Configuration",
+      "icon": "🖼️",
+      "limitMmPerPrompt": "Limit MM per Prompt (limit-mm-per-prompt)",
+      "limitMmPerPromptHelp": "Limit multi-modal inputs per prompt"
+    },
+    "lora": {
+      "title": "LoRA Adapter Configuration",
+      "icon": "🔌",
+      "enableLora": "Enable LoRA (enable-lora)",
+      "maxLoras": "Max LoRAs (max-loras)",
+      "maxLoraRank": "Max LoRA Rank (max-lora-rank)",
+      "loraExtraVocabSize": "LoRA Extra Vocab Size (lora-extra-vocab-size)",
+      "loraDtype": "LoRA Data Type (lora-dtype)",
+      "longLoraScaling": "Long LoRA Scaling Factors (long-lora-scaling-factors)",
+      "maxCpuLoras": "Max CPU LoRAs (max-cpu-loras)",
+      "fullyShardedLoras": "Fully Sharded LoRAs (fully-sharded-loras)",
+      "qloraAdapterPath": "QLoRA Adapter Path (qlora-adapter-name-or-path)"
+    },
+    "promptAdapter": {
+      "title": "Prompt Adapter Configuration",
+      "icon": "📝",
+      "enablePromptAdapter": "Enable Prompt Adapter (enable-prompt-adapter)",
+      "maxPromptAdapters": "Max Prompt Adapters (max-prompt-adapters)",
+      "maxPromptAdapterToken": "Max Prompt Adapter Token (max-prompt-adapter-token)"
+    },
+    "speculative": {
+      "title": "Speculative Decoding Configuration",
+      "icon": "🔮",
+      "speculativeModel": "Speculative Model (speculative-model)",
+      "speculativeModelPlaceholder": "Draft model name or path",
+      "numSpeculativeTokens": "Num Speculative Tokens (num-speculative-tokens)",
+      "speculativeMaxModelLen": "Speculative Max Model Len (speculative-max-model-len)",
+      "speculativeDisableByBatchSize": "Speculative Disable By Batch Size (speculative-disable-by-batch-size)",
+      "ngramPromptLookupMax": "Ngram Prompt Lookup Max (ngram-prompt-lookup-max)",
+      "ngramPromptLookupMin": "Ngram Prompt Lookup Min (ngram-prompt-lookup-min)",
+      "specDecodingAcceptanceMethod": "Spec Decoding Acceptance Method (spec-decoding-acceptance-method)",
+      "typicalAcceptanceThreshold": "Typical Acceptance Posterior Threshold (typical-acceptance-sampler-posterior-threshold)",
+      "typicalAcceptanceAlpha": "Typical Acceptance Posterior Alpha (typical-acceptance-sampler-posterior-alpha)",
+      "disableLogprobsSpecDecoding": "Disable Logprobs During Spec Decoding (disable-logprobs-during-spec-decoding)"
+    },
+    "logging": {
+      "title": "Logging & Monitoring Configuration",
+      "icon": "📊",
+      "disableLogStats": "Disable Log Stats (disable-log-stats)",
+      "disableLogRequests": "Disable Log Requests (disable-log-requests)",
+      "maxLogprobs": "Max Logprobs (max-logprobs)",
+      "otlpTracesEndpoint": "OTLP Traces Endpoint (otlp-traces-endpoint)",
+      "collectDetailedTraces": "Collect Detailed Traces (collect-detailed-traces)"
+    },
+    "other": {
+      "title": "Other Configuration",
+      "icon": "🔧",
+      "device": "Device Type (device)",
+      "seed": "Random Seed (seed)",
+      "servedModelName": "Served Model Name (served-model-name)",
+      "servedModelNamePlaceholder": "Model name used in API, comma-separated for multiple",
+      "ignorePatterns": "Ignore Patterns (ignore-patterns)",
+      "modelLoaderExtraConfig": "Model Loader Extra Config (model-loader-extra-config)",
+      "engineUseRay": "Engine Use Ray (engine-use-ray)"
+    },
+    "apiServer": {
+      "title": "API Server Configuration",
+      "icon": "🌐",
+      "host": "Host (host)",
+      "port": "Port (port)",
+      "sslKeyfile": "SSL Keyfile (ssl-keyfile)",
+      "sslCertfile": "SSL Certfile (ssl-certfile)",
+      "apiKey": "API Key (api-key)",
+      "apiKeyPlaceholder": "Leave empty for no API key authentication",
+      "chatTemplate": "Chat Template (chat-template)",
+      "chatTemplateContentFormat": "Chat Template Content Format (chat-template-content-format)",
+      "generationConfig": "Generation Config (generation-config)",
+      "enableRequestIdHeaders": "Enable Request ID Headers (enable-request-id-headers)",
+      "enableOfflineDocs": "Enable Offline Docs (enable-offline-docs)",
+      "runner": "Runner (runner)"
+    },
+    "env": {
+      "title": "Environment Variables Configuration",
+      "icon": "🔐",
+      "maxAudioClipSize": "Max Audio Clip Size (VLLM_MAX_AUDIO_CLIP_FILESIZE_MB)",
+      "maxAudioClipSizeHelp": "Maximum audio file size for Transcriptions API (MB)",
+      "noUsageStats": "No Usage Stats (VLLM_NO_USAGE_STATS)",
+      "usageStatsEnabled": "Usage Stats Enabled (VLLM_USAGE_STATS_ENABLED)",
+      "testIpcPath": "Test IPC Path (VLLM_TEST_IPC_PATH)",
+      "configFile": "Config File Path (VLLM_CONFIG_FILE)",
+      "allowRemoteCode": "Allow Remote Code (VLLM_ALLOW_REMOTE_CODE)"
+    }
+  },
+  "actions": {
+    "downloadYaml": "⬇️ Download YAML",
+    "copyYaml": "📋 Copy YAML",
+    "copyCommandLine": "📄 Copy Command Line",
+    "reset": "🗑️ Reset",
+    "import": "📥 Import",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "keepModel": "Keep This Model"
+  },
+  "alerts": {
+    "multiNode": {
+      "title": "⚠️ Insufficient VRAM",
+      "message": "This model exceeds 128GB VRAM limit even with 4bit quantization.",
+      "suggestions": "Suggested solutions:",
+      "suggestion1": "Use multi-node deployment (multi-GPU/multi-node)",
+      "suggestion2": "Choose a smaller model variant",
+      "suggestion3": "Use higher quantization precision (e.g., INT4/FP4)"
+    },
+    "contextLimit": {
+      "warning": "⚠️ Warning: {{value}} exceeds model max context {{max}}\n\nAutomatically adjusted to model maximum.",
+      "modelMax": "Model Max Context: {{max}}"
+    }
+  },
+  "quantization": {
+    "modal": {
+      "title": "🔢 Select Quantization Precision",
+      "hint": "Select model weight quantization precision, affects VRAM usage"
+    },
+    "options": {
+      "auto": {
+        "name": "Auto (auto)",
+        "desc": "Automatically select based on model config"
+      },
+      "bf16": {
+        "name": "BF16/FP16 (2 bytes)",
+        "desc": "16-bit float, standard precision"
+      },
+      "fp8": {
+        "name": "8-bit (1 byte)",
+        "desc": "8-bit quantization (INT8/FP8 E4M3/E5M2), half VRAM"
+      },
+      "int4": {
+        "name": "4-bit (0.5 byte)",
+        "desc": "4-bit quantization (INT4/NF4), minimum VRAM"
+      }
+    },
+    "preview": {
+      "currentUsage": "Current VRAM Usage: {{model}}GB (Model) + {{kv}}GB (KV Cache) = {{total}}GB (Total)"
+    }
+  },
+  "time": {
+    "today": "Today",
+    "daysAgo": "{{days}} days ago",
+    "weeksAgo": "{{weeks}} weeks ago",
+    "monthsAgo": "{{months}} months ago",
+    "yearsAgo": "{{years}} years ago"
+  }
+}

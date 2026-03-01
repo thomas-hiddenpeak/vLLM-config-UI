@@ -1,0 +1,44 @@
+{
+  "name": "vllm-config-ui",
+  "version": "1.0.0",
+  "description": "vLLM 配置文件生成器 Web UI - 基于 dom-renderer 和 MobX",
+  "source": "src/index.html",
+  "scripts": {
+    "dev": "npm run dev:frontend",
+    "dev:frontend": "parcel serve src/index.html --open --port 3000",
+    "dev:backend": "python3 server.py",
+    "build": "parcel build src/index.html",
+    "preview": "npx serve dist",
+    "server": "python3 server.py"
+  },
+  "proxy": "http://localhost:5000",
+  "dependencies": {
+    "dom-renderer": "^2.6.4",
+    "i18next": "^25.8.13",
+    "i18next-browser-languagedetector": "^8.2.1",
+    "js-yaml": "^4.1.0",
+    "mobx": "^6.12.0",
+    "mobx-react-lite": "^4.0.5",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-i18next": "^16.5.4"
+  },
+  "devDependencies": {
+    "@parcel/config-default": "^2.12.0",
+    "@parcel/transformer-typescript-tsc": "^2.12.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "concurrently": "^8.2.2",
+    "parcel": "^2.12.0",
+    "typescript": "^5.4.0"
+  },
+  "keywords": [
+    "vllm",
+    "config",
+    "yaml",
+    "generator",
+    "modelscope"
+  ],
+  "author": "",
+  "license": "MIT"
+}

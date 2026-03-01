@@ -1,0 +1,352 @@
+{
+  "app": {
+    "title": "vLLM 配置生成器",
+    "footer": "基于 ALTAI 构建 | Powered by WebCell"
+  },
+  "preview": {
+    "title": "配置预览",
+    "tabs": {
+      "yaml": "YAML",
+      "cli": "命令行",
+      "env": "环境变量"
+    },
+    "actions": {
+      "copy": "复制",
+      "copied": "已复制",
+      "download": "下载"
+    },
+    "import": {
+      "title": "导入配置",
+      "placeholder": "在此粘贴 YAML 配置以导入...",
+      "button": "导入配置",
+      "success": "配置导入成功！",
+      "error": "导入失败，请检查 YAML 格式"
+    }
+  },
+  "search": {
+    "button": "🔍 搜索模型",
+    "modal": {
+      "title": "ModelScope 模型搜索",
+      "placeholder": "输入模型名称，如：Qwen2.5、ChatGLM3、MiniMax/MiniMax-M2.5",
+      "search": "搜索",
+      "searching": "搜索中...",
+      "noResults": "未找到相关模型",
+      "sort": {
+        "label": "排序方式:",
+        "downloads": "📥 下载量",
+        "likes": "❤️ 点赞数",
+        "updated": "🕐 更新时间",
+        "name": "🔤 名称"
+      },
+      "pagination": {
+        "info": "第 {{page}} / {{total}} 页 (共 {{count}} 个模型)",
+        "prev": "← 上一页",
+        "next": "下一页 →"
+      },
+      "details": {
+        "parameters": "参数量:",
+        "dtype": "精度:",
+        "weight": "权重:",
+        "framework": "框架:",
+        "license": "许可:",
+        "updated": "发布:",
+        "unknown": "未知",
+        "auto": "自动"
+      },
+      "view": "🔗 查看"
+    }
+  },
+  "vram": {
+    "title": "📊 显存占用",
+    "modelWeight": "模型权重",
+    "kvCache": "KV 缓存",
+    "total": "总计",
+    "context": "📝 上下文",
+    "devices": "🖥️ 设备兼容性",
+    "deployable": "✅ 可部署",
+    "notDeployable": "❌ 显存不足",
+    "remaining": "剩余",
+    "overflow": "⚠️ 超限",
+    "quantization": {
+      "hint": "(原始：{{original}}GB → 量化后：{{quantized}}GB)",
+      "notice": "⚠️ 请确保已下载量化权重或自行量化"
+    }
+  },
+  "config": {
+    "model": {
+      "title": "核心模型配置",
+      "icon": "📦",
+      "name": "模型名称 (model)",
+      "namePlaceholder": "例如：Qwen/Qwen2.5-7B-Instruct",
+      "nameHelp": "HuggingFace 或 ModelScope 模型路径",
+      "tokenizer": "分词器 (tokenizer)",
+      "tokenizerPlaceholder": "留空则使用模型自带的分词器",
+      "dtype": "数据类型 (dtype)",
+      "maxModelLen": "最大模型长度 (max-model-len)",
+      "maxModelLenHelp": "模型处理的最大序列长度",
+      "loadFormat": "加载格式 (load-format)",
+      "tokenizerMode": "分词器模式 (tokenizer-mode)",
+      "guidedDecoding": "引导解码后端 (guided-decoding-backend)",
+      "revision": "修订版本 (revision)",
+      "downloadDir": "下载目录",
+      "trustRemoteCode": "信任远程代码 (trust-remote-code)",
+      "skipTokenizerInit": "跳过分词器初始化 (skip-tokenizer-init)",
+      "configFormat": "配置格式",
+      "hfOverrides": "HF 配置覆盖",
+      "codeRevision": "代码修订版本",
+      "tokenizerRevision": "分词器修订版本"
+    },
+    "distributed": {
+      "title": "分布式与并行配置",
+      "icon": "⚡",
+      "tensorParallel": "张量并行数 (tensor-parallel-size)",
+      "tensorParallelHelp": "用于张量并行的 GPU 数量",
+      "pipelineParallel": "流水线并行数 (pipeline-parallel-size)",
+      "pipelineParallelHelp": "用于流水线并行的 GPU 数量",
+      "executorBackend": "分布式执行后端 (distributed-executor-backend)",
+      "workerUseRay": "使用 Ray",
+      "rayNsight": "Ray Worker Nsight (ray-workers-use-nsight)",
+      "disableCustomAllReduce": "禁用自定义 AllReduce (disable-custom-all-reduce)",
+      "maxParallelWorkers": "最大并行加载 Worker 数",
+      "dataParallelSize": "数据并行大小",
+      "mmEncoderTpMode": "多模态编码器 TP 模式",
+      "distributedExecutorBackend": "分布式执行后端",
+      "rayWorkersUseNsight": "Ray Worker Nsight"
+    },
+    "memory": {
+      "title": "内存与缓存配置",
+      "icon": "💾",
+      "gpuMemoryUtil": "GPU 内存利用率 (gpu-memory-utilization)",
+      "gpuMemoryUtilHelp": "用于 KV 缓存的 GPU 内存比例 (0.1-1.0)",
+      "blockSize": "块大小 (block-size)",
+      "kvCacheDtype": "KV 缓存数据类型 (kv-cache-dtype)",
+      "swapSpace": "交换空间 (swap-space)",
+      "swapSpaceHelp": "每 GPU 的 CPU 交换空间大小 (GiB)",
+      "cpuOffload": "CPU 卸载空间 (cpu-offload-gb)",
+      "cpuOffloadHelp": "每 GPU 卸载到 CPU 的空间 (GiB)",
+      "numGpuBlocks": "GPU Blocks 覆盖值 (num-gpu-blocks-override)",
+      "enablePrefixCaching": "启用前缀缓存 (enable-prefix-caching)",
+      "disableSlidingWindow": "禁用滑动窗口 (disable-sliding-window)",
+      "prefixCachingHashAlgo": "前缀缓存哈希算法",
+      "numGpuBlocksOverride": "GPU Blocks 覆盖",
+      "NumGpuBlocksOverride": "GPU Blocks 覆盖",
+      "MaxNumBatchedTokens": "最大批处理 Token 数",
+      "useV2BlockManager": "使用 V2 Block Manager",
+      "numLookaheadSlots": "Lookahead Slots 数量"
+    },
+    "scheduler": {
+      "title": "调度与批处理配置",
+      "icon": "📋",
+      "maxNumSeqs": "最大序列数 (max-num-seqs)",
+      "maxNumSeqsHelp": "每次迭代的最大序列数量",
+      "maxNumBatchedTokens": "最大批处理 Token 数 (max-num-batched-tokens)",
+      "numSchedulerSteps": "调度器步数 (num-scheduler-steps)",
+      "schedulerDelayFactor": "调度延迟因子 (scheduler-delay-factor)",
+      "enableChunkedPrefill": "启用分块预填充 (enable-chunked-prefill)",
+      "preemptionMode": "抢占模式",
+      "schedulingPolicy": "调度策略"
+    },
+    "quantization": {
+      "title": "量化配置",
+      "icon": "🔧",
+      "method": "量化方法 (quantization)",
+      "methodHelp": "选择量化方法以减少显存占用",
+      "paramPath": "量化参数路径 (quantization-param-path)",
+      "paramPathHelp": "FP8 量化时需要提供缩放因子 JSON 文件",
+      "speculativeQuant": "推测模型量化 (speculative-model-quantization)"
+    },
+    "rope": {
+      "title": "RoPE 与性能优化",
+      "icon": "⚙️",
+      "ropeTheta": "RoPE Theta (rope-theta)",
+      "maxSeqLenCapture": "最大捕获序列长度 (max-seq-len-to-capture)",
+      "ropeScaling": "RoPE 缩放配置",
+      "ropeScalingHelp": "JSON 格式配置 RoPE 缩放",
+      "enforceEager": "强制 Eager 模式 (enforce-eager)",
+      "useV2BlockManager": "使用 V2 Block Manager (use-v2-block-manager)"
+    },
+    "tokenizerPool": {
+      "title": "Tokenizer 池化",
+      "icon": "🔄",
+      "poolSize": "Tokenizer 池大小 (tokenizer-pool-size)",
+      "poolSizeHelp": "0 表示同步分词",
+      "poolType": "池类型 (tokenizer-pool-type)",
+      "poolExtraConfig": "Tokenizer 池额外配置"
+    },
+    "multimodal": {
+      "title": "多模态配置",
+      "icon": "🖼️",
+      "limitMmPerPrompt": "限制每 Prompt 多模态输入 (limit-mm-per-prompt)",
+      "limitMmPerPromptHelp": "限制每个提示的多模态输入数量",
+      "mmProcessorKwargs": "多模态处理器参数"
+    },
+    "lora": {
+      "title": "LoRA 适配器配置",
+      "icon": "🔌",
+      "enableLora": "启用 LoRA (enable-lora)",
+      "maxLoras": "最大 LoRA 数 (max-loras)",
+      "maxLoraRank": "最大 LoRA 秩 (max-lora-rank)",
+      "loraExtraVocabSize": "LoRA 额外词汇大小 (lora-extra-vocab-size)",
+      "loraDtype": "LoRA 数据类型 (lora-dtype)",
+      "longLoraScaling": "长 LoRA 缩放因子 (long-lora-scaling-factors)",
+      "maxCpuLoras": "最大 CPU LoRA 数 (max-cpu-loras)",
+      "fullyShardedLoras": "完全分片 LoRA",
+      "qloraAdapterPath": "QLoRA 适配器路径 (qlora-adapter-name-or-path)",
+      "MaxCpuLoras": "最大 CPU LoRAs",
+      "longLoraScalingFactors": "长 LoRA 缩放因子",
+      "qloraAdapterNameOrPath": "QLoRA 适配器路径"
+    },
+    "promptAdapter": {
+      "title": "Prompt Adapter 配置",
+      "icon": "📝",
+      "enablePromptAdapter": "启用 Prompt Adapter (enable-prompt-adapter)",
+      "maxPromptAdapters": "最大 Prompt Adapter 数 (max-prompt-adapters)",
+      "maxPromptAdapterToken": "最大 Prompt Adapter Token (max-prompt-adapter-token)"
+    },
+    "speculative": {
+      "title": "推测解码配置",
+      "icon": "🔮",
+      "speculativeModel": "推测模型 (speculative-model)",
+      "speculativeModelPlaceholder": "草稿模型名称或路径",
+      "numSpeculativeTokens": "推测 Token 数 (num-speculative-tokens)",
+      "speculativeMaxModelLen": "推测最大模型长度 (speculative-max-model-len)",
+      "speculativeDisableByBatchSize": "按批量大小禁用",
+      "ngramPromptLookupMax": "Ngram 查找最大值 (ngram-prompt-lookup-max)",
+      "ngramPromptLookupMin": "Ngram 查找最小值 (ngram-prompt-lookup-min)",
+      "specDecodingAcceptanceMethod": "推测接受方法",
+      "typicalAcceptanceThreshold": "后验概率阈值 (typical-acceptance-sampler-posterior-threshold)",
+      "typicalAcceptanceAlpha": "熵阈值缩放因子 (typical-acceptance-sampler-posterior-alpha)",
+      "disableLogprobsSpecDecoding": "禁用推测 logprobs (disable-logprobs-during-spec-decoding)",
+      "speculativeDisableMqaCache": "禁用 MQA 缓存",
+      "SpeculativeMaxModelLen": "推测最大模型长度",
+      "SpeculativeDisableByBatchSize": "按批量大小禁用",
+      "disableLogprobsDuringSpecDecoding": "禁用推测 logprobs",
+      "typicalAcceptanceSamplerPosteriorThreshold": "后验概率阈值",
+      "typicalAcceptanceSamplerPosteriorAlpha": "后验 Alpha"
+    },
+    "logging": {
+      "title": "日志与监控配置",
+      "icon": "📊",
+      "disableLogStats": "禁用统计日志 (disable-log-stats)",
+      "disableLogRequests": "禁用请求日志 (disable-log-requests)",
+      "maxLogprobs": "最大 logprobs (max-logprobs)",
+      "otlpTracesEndpoint": "OTLP Traces 端点 (otlp-traces-endpoint)",
+      "collectDetailedTraces": "收集详细 Traces (collect-detailed-traces)",
+      "maxLogLen": "最大日志长度"
+    },
+    "other": {
+      "title": "其他配置",
+      "icon": "🔧",
+      "device": "设备类型 (device)",
+      "seed": "随机种子 (seed)",
+      "servedModelName": "服务模型名称 (served-model-name)",
+      "servedModelNamePlaceholder": "API 中使用的模型名称，多个用逗号分隔",
+      "ignorePatterns": "忽略模式 (ignore-patterns)",
+      "modelLoaderExtraConfig": "模型加载器额外配置 (model-loader-extra-config)",
+      "engineUseRay": "使用 Ray 引擎 (engine-use-ray)",
+      "modelImpl": "模型实现",
+      "disableAsyncOutputProc": "禁用异步输出处理"
+    },
+    "apiServer": {
+      "title": "API 服务器配置",
+      "icon": "🌐",
+      "host": "主机 (host)",
+      "port": "端口 (port)",
+      "sslKeyfile": "SSL 密钥文件 (ssl-keyfile)",
+      "sslCertfile": "SSL 证书文件 (ssl-certfile)",
+      "apiKey": "API 密钥 (api-key)",
+      "apiKeyPlaceholder": "留空则不需要 API 密钥认证",
+      "chatTemplate": "聊天模板",
+      "chatTemplateContentFormat": "聊天模板内容格式",
+      "generationConfig": "生成配置 (generation-config)",
+      "enableRequestIdHeaders": "启用请求 ID 头 (enable-request-id-headers)",
+      "enableOfflineDocs": "启用离线文档 (enable-offline-docs)",
+      "runner": "运行模式",
+      "sslCaCerts": "SSL CA 证书",
+      "sslCertReqs": "SSL 证书验证",
+      "allowedOrigins": "允许的 CORS 源",
+      "responseRole": "响应角色",
+      "returnTokensAsTokenIds": "返回 Token IDs",
+      "enableAutoToolChoice": "启用自动工具选择",
+      "toolCallParser": "工具调用解析器",
+      "disableFrontendMultiprocessing": "禁用前端多进程",
+      "uvicornLogLevel": "Uvicorn 日志级别"
+    },
+    "env": {
+      "title": "环境变量配置",
+      "icon": "🔐",
+      "maxAudioClipSize": "最大音频文件大小 (VLLM_MAX_AUDIO_CLIP_FILESIZE_MB)",
+      "maxAudioClipSizeHelp": "Transcriptions API 允许的最大音频文件大小 (MB)",
+      "noUsageStats": "禁用使用统计 (VLLM_NO_USAGE_STATS)",
+      "usageStatsEnabled": "启用使用统计",
+      "testIpcPath": "测试 IPC 路径",
+      "configFile": "配置文件路径",
+      "allowRemoteCode": "允许远程代码 (VLLM_ALLOW_REMOTE_CODE)",
+      "allowLongMaxModelLen": "允许超长上下文",
+      "useModelscope": "使用 ModelScope",
+      "attentionBackend": "注意力后端",
+      "loggingLevel": "日志级别",
+      "forceCpuWarmup": "强制 CPU 预热",
+      "useAiterQuantization": "使用 AITER 量化"
+    }
+  },
+  "actions": {
+    "downloadYaml": "⬇️ 下载配置文件",
+    "copyYaml": "📋 复制 YAML",
+    "copyCommandLine": "📄 复制命令行",
+    "reset": "🗑️ 重置",
+    "import": "📥 导入",
+    "cancel": "取消",
+    "confirm": "确认",
+    "close": "关闭",
+    "keepModel": "仍然选择此模型"
+  },
+  "alerts": {
+    "multiNode": {
+      "title": "⚠️ 显存不足提示",
+      "message": "该模型即使在 4bit 量化情况下仍然超过 128GB 显存限制。",
+      "suggestions": "建议方案：",
+      "suggestion1": "使用多机编排（多卡/多节点部署）",
+      "suggestion2": "选择更小的模型变体",
+      "suggestion3": "使用更高的量化精度（如 INT4/FP4）"
+    },
+    "contextLimit": {
+      "warning": "⚠️ 警告：{{value}} 超过了模型最大上下文 {{max}}\n\n已自动调整为模型最大值",
+      "modelMax": "模型最大上下文：{{max}}"
+    }
+  },
+  "quantization": {
+    "modal": {
+      "title": "🔢 选择量化精度",
+      "hint": "选择模型权重量化精度，将影响显存占用"
+    },
+    "options": {
+      "auto": {
+        "name": "自动 (auto)",
+        "desc": "根据模型配置文件自动选择"
+      },
+      "bf16": {
+        "name": "BF16/FP16 (2 bytes)",
+        "desc": "16 位浮点，标准精度"
+      },
+      "fp8": {
+        "name": "8-bit (1 byte)",
+        "desc": "8 位量化 (INT8/FP8 E4M3/E5M2)，显存减半"
+      },
+      "int4": {
+        "name": "4-bit (0.5 byte)",
+        "desc": "4 位量化 (INT4/NF4)，显存最低"
+      }
+    },
+    "preview": {
+      "currentUsage": "当前显存占用：{{model}}GB (模型) + {{kv}}GB (KV 缓存) = {{total}}GB (总计)"
+    }
+  },
+  "time": {
+    "today": "今天",
+    "daysAgo": "{{days}}天前",
+    "weeksAgo": "{{weeks}}周前",
+    "monthsAgo": "{{months}}月前",
+    "yearsAgo": "{{years}}年前"
+  }
+}

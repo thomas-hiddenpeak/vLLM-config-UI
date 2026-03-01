@@ -1,0 +1,806 @@
+{
+  "model": {
+    "title": "核心模型配置",
+    "icon": "📦",
+    "fields": {
+      "model": {
+        "type": "string",
+        "default": "",
+        "required": true,
+        "help": "模型名称或路径（HuggingFace 或本地路径）",
+        "cli": "--model"
+      },
+      "tokenizer": {
+        "type": "string",
+        "default": null,
+        "help": "分词器名称或路径，留空则使用模型自带的分词器",
+        "cli": "--tokenizer"
+      },
+      "tokenizer_mode": {
+        "type": "select",
+        "default": "auto",
+        "options": ["auto", "slow", "mistral", "custom"],
+        "help": "分词器模式",
+        "cli": "--tokenizer-mode"
+      },
+      "trust_remote_code": {
+        "type": "boolean",
+        "default": false,
+        "help": "信任并执行模型代码（有安全风险）",
+        "cli": "--trust-remote-code"
+      },
+      "dtype": {
+        "type": "select",
+        "default": "auto",
+        "options": ["auto", "half", "float16", "bfloat16", "float", "float32"],
+        "help": "模型权重数据类型",
+        "cli": "--dtype"
+      },
+      "seed": {
+        "type": "number",
+        "default": 0,
+        "help": "随机种子",
+        "cli": "--seed"
+      },
+      "max_model_len": {
+        "type": "number",
+        "default": null,
+        "help": "模型处理的最大序列长度",
+        "cli": "--max-model-len"
+      },
+      "revision": {
+        "type": "string",
+        "default": null,
+        "help": "模型修订版本（branch/tag/commit）",
+        "cli": "--revision"
+      },
+      "code_revision": {
+        "type": "string",
+        "default": null,
+        "help": "代码修订版本",
+        "cli": "--code-revision"
+      },
+      "tokenizer_revision": {
+        "type": "string",
+        "default": null,
+        "help": "分词器修订版本",
+        "cli": "--tokenizer-revision"
+      },
+      "download_dir": {
+        "type": "string",
+        "default": null,
+        "help": "模型下载目录",
+        "cli": "--download-dir"
+      },
+      "load_format": {
+        "type": "select",
+        "default": "auto",
+        "options": ["auto", "pt", "safetensors", "npcache", "dummy", "tensorizer", "sharded_state", "gguf", "bitsandbytes", "mamba"],
+        "help": "模型加载格式",
+        "cli": "--load-format"
+      },
+      "config_format": {
+        "type": "select",
+        "default": "auto",
+        "options": ["auto", "hf", "mistral"],
+        "help": "配置文件格式",
+        "cli": "--config-format"
+      },
+      "guided_decoding_backend": {
+        "type": "select",
+        "default": "outlines",
+        "options": ["outlines", "lm-format-enforcer", "xgrammar", "guidance"],
+        "help": "引导解码后端",
+        "cli": "--guided-decoding-backend"
+      },
+      "hf_overrides": {
+        "type": "json",
+        "default": null,
+        "help": "HuggingFace 配置覆盖（JSON 格式）",
+        "cli": "--hf-overrides"
+      }
+    }
+  },
+  "distributed": {
+    "title": "分布式与并行",
+    "icon": "⚡",
+    "fields": {
+      "tensor_parallel_size": {
+        "type": "number",
+        "default": 1,
+        "min": 1,
+        "help": "张量并行 GPU 数量",
+        "cli": "--tensor-parallel-size"
+      },
+      "pipeline_parallel_size": {
+        "type": "number",
+        "default": 1,
+        "min": 1,
+        "help": "流水线并行 GPU 数量",
+        "cli": "--pipeline-parallel-size"
+      },
+      "data_parallel_size": {
+        "type": "number",
+        "default": 1,
+        "min": 1,
+        "help": "数据并行副本数量",
+        "cli": "--data-parallel-size"
+      },
+      "max_parallel_loading_workers": {
+        "type": "number",
+        "default": null,
+        "help": "并行加载模型的 Worker 数量",
+        "cli": "--max-parallel-loading-workers"
+      },
+      "distributed_executor_backend": {
+        "type": "select",
+        "default": "auto",
+        "options": ["auto", "ray", "mp", "uni", "none"],
+        "help": "分布式执行后端",
+        "cli": "--distributed-executor-backend"
+      },
+      "worker_use_ray": {
+        "type": "boolean",
+        "default": false,
+        "help": "Worker 使用 Ray（已废弃，使用 distributed-executor-backend）",
+        "cli": "--worker-use-ray"
+      },
+      "ray_workers_use_nsight": {
+        "type": "boolean",
+        "default": false,
+        "help": "Ray Worker 使用 Nsight 性能分析",
+        "cli": "--ray-workers-use-nsight"
+      },
+      "disable_custom_all_reduce": {
+        "type": "boolean",
+        "default": false,
+        "help": "禁用自定义 AllReduce 操作",
+        "cli": "--disable-custom-all-reduce"
+      },
+      "mm_encoder_tp_mode": {
+        "type": "select",
+        "default": "data",
+        "options": ["data", "tensor", "none"],
+        "help": "多模态编码器张量并行模式",
+        "cli": "--mm-encoder-tp-mode"
+      }
+    }
+  },
+  "memory": {
+    "title": "内存与缓存",
+    "icon": "💾",
+    "fields": {
+      "block_size": {
+        "type": "select",
+        "default": 16,
+        "options": [8, 16, 32, 64, 128],
+        "help": "Token 块大小（注意力计算的粒度）",
+        "cli": "--block-size"
+      },
+      "gpu_memory_utilization": {
+        "type": "number",
+        "default": 0.9,
+        "min": 0.1,
+        "max": 1.0,
+        "step": 0.1,
+        "help": "用于 KV 缓存的 GPU 内存比例",
+        "cli": "--gpu-memory-utilization"
+      },
+      "swap_space": {
+        "type": "number",
+        "default": 4,
+        "min": 0,
+        "help": "每 GPU 的 CPU 交换空间大小（GiB）",
+        "cli": "--swap-space"
+      },
+      "cpu_offload_gb": {
+        "type": "number",
+        "default": 0,
+        "min": 0,
+        "help": "每 GPU 卸载到 CPU 的空间（GiB）",
+        "cli": "--cpu-offload-gb"
+      },
+      "kv_cache_dtype": {
+        "type": "select",
+        "default": "auto",
+        "options": ["auto", "fp8", "fp8_e4m3", "fp8_e5m2", "fp8_hybrid"],
+        "help": "KV 缓存数据类型",
+        "cli": "--kv-cache-dtype"
+      },
+      "num_gpu_blocks_override": {
+        "type": "number",
+        "default": null,
+        "help": "覆盖 GPU block 数量",
+        "cli": "--num-gpu-blocks-override"
+      },
+      "max_num_batched_tokens": {
+        "type": "number",
+        "default": null,
+        "help": "每批次最大 Token 数",
+        "cli": "--max-num-batched-tokens"
+      },
+      "enable_prefix_caching": {
+        "type": "boolean",
+        "default": false,
+        "help": "启用前缀缓存（重用跨请求的 KV 缓存）",
+        "cli": "--enable-prefix-caching"
+      },
+      "prefix_caching_hash_algo": {
+        "type": "select",
+        "default": "sha256",
+        "options": ["sha256", "sip_hash"],
+        "help": "前缀缓存哈希算法",
+        "cli": "--prefix-caching-hash-algo"
+      },
+      "disable_sliding_window": {
+        "type": "boolean",
+        "default": false,
+        "help": "禁用滑动窗口注意力",
+        "cli": "--disable-sliding-window"
+      },
+      "use_v2_block_manager": {
+        "type": "boolean",
+        "default": true,
+        "help": "使用 V2 block manager（已废弃，默认启用）",
+        "cli": "--use-v2-block-manager"
+      },
+      "num_lookahead_slots": {
+        "type": "number",
+        "default": 0,
+        "help": "预分配的 lookahead 槽位数",
+        "cli": "--num-lookahead-slots"
+      }
+    }
+  },
+  "scheduler": {
+    "title": "调度器",
+    "icon": "📋",
+    "fields": {
+      "max_num_seqs": {
+        "type": "number",
+        "default": 256,
+        "min": 1,
+        "help": "每次迭代的最大序列数",
+        "cli": "--max-num-seqs"
+      },
+      "num_scheduler_steps": {
+        "type": "number",
+        "default": 1,
+        "min": 1,
+        "help": "调度器步数",
+        "cli": "--num-scheduler-steps"
+      },
+      "scheduler_delay_factor": {
+        "type": "number",
+        "default": 0.0,
+        "min": 0,
+        "max": 1,
+        "step": 0.1,
+        "help": "调度延迟因子（降低长请求优先级）",
+        "cli": "--scheduler-delay-factor"
+      },
+      "enable_chunked_prefill": {
+        "type": "boolean",
+        "default": false,
+        "help": "启用分块预填充（降低内存占用）",
+        "cli": "--enable-chunked-prefill"
+      },
+      "preemption_mode": {
+        "type": "select",
+        "default": "swap",
+        "options": ["swap", "recompute"],
+        "help": "抢占模式（当显存不足时）",
+        "cli": "--preemption-mode"
+      },
+      "scheduling_policy": {
+        "type": "select",
+        "default": "fcfs",
+        "options": ["fcfs", "lpm"],
+        "help": "调度策略（FCFS 或最长前缀匹配）",
+        "cli": "--scheduling-policy"
+      }
+    }
+  },
+  "quantization": {
+    "title": "量化",
+    "icon": "🔧",
+    "fields": {
+      "quantization": {
+        "type": "select",
+        "default": null,
+        "options": ["awq", "gptq", "marlin", "gguf", "fp8", "ipex", "None"],
+        "help": "量化方法",
+        "cli": "--quantization"
+      },
+      "quantization_param_path": {
+        "type": "string",
+        "default": null,
+        "help": "量化参数路径（JSON 文件）",
+        "cli": "--quantization-param-path"
+      }
+    }
+  },
+  "rope": {
+    "title": "RoPE 配置",
+    "icon": "⚙️",
+    "fields": {
+      "rope_theta": {
+        "type": "number",
+        "default": null,
+        "help": "RoPE 温度参数",
+        "cli": "--rope-theta"
+      },
+      "rope_scaling": {
+        "type": "json",
+        "default": null,
+        "help": "RoPE 缩放配置（JSON 格式）",
+        "cli": "--rope-scaling"
+      },
+      "max_seq_len_to_capture": {
+        "type": "number",
+        "default": 8192,
+        "help": "CUDA Graph 捕获的最大序列长度",
+        "cli": "--max-seq-len-to-capture"
+      },
+      "enforce_eager": {
+        "type": "boolean",
+        "default": false,
+        "help": "强制使用 Eager 模式（禁用 CUDA Graph）",
+        "cli": "--enforce-eager"
+      }
+    }
+  },
+  "tokenizer_pool": {
+    "title": "Tokenizer 池",
+    "icon": "🔄",
+    "fields": {
+      "tokenizer_pool_size": {
+        "type": "number",
+        "default": 0,
+        "min": 0,
+        "help": "Tokenizer 进程池大小（0 表示同步分词）",
+        "cli": "--tokenizer-pool-size"
+      },
+      "tokenizer_pool_type": {
+        "type": "select",
+        "default": "ray",
+        "options": ["ray", "mp"],
+        "help": "Tokenizer 池类型",
+        "cli": "--tokenizer-pool-type"
+      },
+      "tokenizer_pool_extra_config": {
+        "type": "json",
+        "default": null,
+        "help": "Tokenizer 池额外配置（JSON）",
+        "cli": "--tokenizer-pool-extra-config"
+      }
+    }
+  },
+  "lora": {
+    "title": "LoRA 适配器",
+    "icon": "🔌",
+    "fields": {
+      "enable_lora": {
+        "type": "boolean",
+        "default": false,
+        "help": "启用 LoRA 适配器",
+        "cli": "--enable-lora"
+      },
+      "max_loras": {
+        "type": "number",
+        "default": 1,
+        "min": 1,
+        "help": "同时服务的最大 LoRA 数量",
+        "cli": "--max-loras"
+      },
+      "max_lora_rank": {
+        "type": "number",
+        "default": 16,
+        "min": 1,
+        "help": "最大 LoRA 秩",
+        "cli": "--max-lora-rank"
+      },
+      "lora_extra_vocab_size": {
+        "type": "number",
+        "default": 256,
+        "min": 0,
+        "help": "LoRA 额外词汇大小",
+        "cli": "--lora-extra-vocab-size"
+      },
+      "lora_dtype": {
+        "type": "select",
+        "default": "auto",
+        "options": ["auto", "float16", "bfloat16", "float32"],
+        "help": "LoRA 权重数据类型",
+        "cli": "--lora-dtype"
+      },
+      "long_lora_scaling_factors": {
+        "type": "string",
+        "default": null,
+        "help": "长 LoRA 缩放因子（逗号分隔）",
+        "cli": "--long-lora-scaling-factors"
+      },
+      "max_cpu_loras": {
+        "type": "number",
+        "default": null,
+        "help": "CPU 中缓存的最大 LoRA 数量",
+        "cli": "--max-cpu-loras"
+      },
+      "fully_sharded_loras": {
+        "type": "boolean",
+        "default": false,
+        "help": "完全分片 LoRA",
+        "cli": "--fully-sharded-loras"
+      },
+      "qlora_adapter_name_or_path": {
+        "type": "string",
+        "default": null,
+        "help": "QLoRA 适配器名称或路径",
+        "cli": "--qlora-adapter-name-or-path"
+      }
+    }
+  },
+  "speculative": {
+    "title": "推测解码",
+    "icon": "🔮",
+    "fields": {
+      "speculative_model": {
+        "type": "string",
+        "default": null,
+        "help": "草稿模型名称或路径",
+        "cli": "--speculative-model"
+      },
+      "num_speculative_tokens": {
+        "type": "number",
+        "default": null,
+        "help": "每次生成的推测 Token 数量",
+        "cli": "--num-speculative-tokens"
+      },
+      "speculative_max_model_len": {
+        "type": "number",
+        "default": null,
+        "help": "推测模型最大长度",
+        "cli": "--speculative-max-model-len"
+      },
+      "speculative_disable_by_batch_size": {
+        "type": "number",
+        "default": null,
+        "help": "超过此批量大小禁用推测解码",
+        "cli": "--speculative-disable-by-batch-size"
+      },
+      "ngram_prompt_lookup_max": {
+        "type": "number",
+        "default": 0,
+        "help": "Ngram 提示查找最大大小",
+        "cli": "--ngram-prompt-lookup-max"
+      },
+      "ngram_prompt_lookup_min": {
+        "type": "number",
+        "default": 0,
+        "help": "Ngram 提示查找最小大小",
+        "cli": "--ngram-prompt-lookup-min"
+      },
+      "spec_decoding_acceptance_method": {
+        "type": "select",
+        "default": "rejection_sampler",
+        "options": ["rejection_sampler", "typical_acceptance_sampler"],
+        "help": "推测接受方法",
+        "cli": "--spec-decoding-acceptance-method"
+      },
+      "typical_acceptance_sampler_posterior_threshold": {
+        "type": "number",
+        "default": null,
+        "help": "后验概率阈值",
+        "cli": "--typical-acceptance-sampler-posterior-threshold"
+      },
+      "typical_acceptance_sampler_posterior_alpha": {
+        "type": "number",
+        "default": null,
+        "help": "熵阈值缩放因子",
+        "cli": "--typical-acceptance-sampler-posterior-alpha"
+      },
+      "disable_logprobs_during_spec_decoding": {
+        "type": "boolean",
+        "default": null,
+        "help": "推测解码期间禁用 logprobs",
+        "cli": "--disable-logprobs-during-spec-decoding"
+      },
+      "speculative_disable_mqa_cache": {
+        "type": "boolean",
+        "default": false,
+        "help": "禁用推测 MQA 缓存",
+        "cli": "--speculative-disable-mqa-cache"
+      }
+    }
+  },
+  "multimodal": {
+    "title": "多模态",
+    "icon": "🖼️",
+    "fields": {
+      "limit_mm_per_prompt": {
+        "type": "json",
+        "default": null,
+        "help": "限制每个提示的多模态输入数量（JSON）",
+        "cli": "--limit-mm-per-prompt"
+      },
+      "mm_processor_kwargs": {
+        "type": "json",
+        "default": null,
+        "help": "多模态处理器额外参数（JSON）",
+        "cli": "--mm-processor-kwargs"
+      }
+    }
+  },
+  "api_server": {
+    "title": "API 服务器",
+    "icon": "🌐",
+    "fields": {
+      "host": {
+        "type": "string",
+        "default": "0.0.0.0",
+        "help": "服务器监听地址",
+        "cli": "--host"
+      },
+      "port": {
+        "type": "number",
+        "default": 8000,
+        "help": "服务器端口",
+        "cli": "--port"
+      },
+      "ssl_keyfile": {
+        "type": "string",
+        "default": null,
+        "help": "SSL 私钥文件路径",
+        "cli": "--ssl-keyfile"
+      },
+      "ssl_certfile": {
+        "type": "string",
+        "default": null,
+        "help": "SSL 证书文件路径",
+        "cli": "--ssl-certfile"
+      },
+      "ssl_ca_certs": {
+        "type": "string",
+        "default": null,
+        "help": "SSL CA 证书路径",
+        "cli": "--ssl-ca-certs"
+      },
+      "ssl_cert_reqs": {
+        "type": "number",
+        "default": 0,
+        "options": [0, 1, 2],
+        "help": "SSL 证书验证要求（0=none, 1=optional, 2=required）",
+        "cli": "--ssl-cert-reqs"
+      },
+      "api_key": {
+        "type": "string",
+        "default": null,
+        "help": "API 密钥（留空则不需要认证）",
+        "cli": "--api-key"
+      },
+      "allowed_origins": {
+        "type": "string",
+        "default": "*",
+        "help": "允许的 CORS 源（逗号分隔）",
+        "cli": "--allowed-origins"
+      },
+      "chat_template": {
+        "type": "string",
+        "default": null,
+        "help": "聊天模板（Jinja 模板）",
+        "cli": "--chat-template"
+      },
+      "chat_template_content_format": {
+        "type": "select",
+        "default": "auto",
+        "options": ["auto", "string", "openai"],
+        "help": "聊天模板内容格式",
+        "cli": "--chat-template-content-format"
+      },
+      "response_role": {
+        "type": "string",
+        "default": "assistant",
+        "help": "响应角色名称",
+        "cli": "--response-role"
+      },
+      "return_tokens_as_token_ids": {
+        "type": "boolean",
+        "default": false,
+        "help": "返回 token 为 token_ids",
+        "cli": "--return-tokens-as-token-ids"
+      },
+      "enable_auto_tool_choice": {
+        "type": "boolean",
+        "default": false,
+        "help": "启用自动工具选择",
+        "cli": "--enable-auto-tool-choice"
+      },
+      "tool_call_parser": {
+        "type": "string",
+        "default": null,
+        "help": "工具调用解析器",
+        "cli": "--tool-call-parser"
+      },
+      "enable_request_id_headers": {
+        "type": "boolean",
+        "default": false,
+        "help": "启用请求 ID 响应头",
+        "cli": "--enable-request-id-headers"
+      },
+      "enable_offline_docs": {
+        "type": "boolean",
+        "default": true,
+        "help": "启用离线 API 文档",
+        "cli": "--enable-offline-docs"
+      },
+      "runner": {
+        "type": "select",
+        "default": "generate",
+        "options": ["generate", "classify", "embed", "score"],
+        "help": "运行模式",
+        "cli": "--runner"
+      },
+      "disable_frontend_multiprocessing": {
+        "type": "boolean",
+        "default": false,
+        "help": "禁用前端多进程",
+        "cli": "--disable-frontend-multiprocessing"
+      },
+      "uvicorn_log_level": {
+        "type": "select",
+        "default": "info",
+        "options": ["debug", "info", "warning", "error", "critical"],
+        "help": "Uvicorn 日志级别",
+        "cli": "--uvicorn-log-level"
+      }
+    }
+  },
+  "logging": {
+    "title": "日志与监控",
+    "icon": "📊",
+    "fields": {
+      "disable_log_stats": {
+        "type": "boolean",
+        "default": false,
+        "help": "禁用定期统计日志",
+        "cli": "--disable-log-stats"
+      },
+      "disable_log_requests": {
+        "type": "boolean",
+        "default": false,
+        "help": "禁用请求日志",
+        "cli": "--disable-log-requests"
+      },
+      "max_log_len": {
+        "type": "number",
+        "default": null,
+        "help": "最大日志输出长度",
+        "cli": "--max-log-len"
+      },
+      "otlp_traces_endpoint": {
+        "type": "string",
+        "default": null,
+        "help": "OTLP Traces 端点 URL",
+        "cli": "--otlp-traces-endpoint"
+      },
+      "collect_detailed_traces": {
+        "type": "string",
+        "default": null,
+        "help": "收集详细 Traces（逗号分隔模块名）",
+        "cli": "--collect-detailed-traces"
+      }
+    }
+  },
+  "other": {
+    "title": "其他配置",
+    "icon": "🔧",
+    "fields": {
+      "device": {
+        "type": "select",
+        "default": "auto",
+        "options": ["auto", "cuda", "neuron", "cpu", "openvino", "tpu", "xpu", "ipex"],
+        "help": "设备类型",
+        "cli": "--device"
+      },
+      "served_model_name": {
+        "type": "string",
+        "default": null,
+        "help": "API 中使用的模型名称",
+        "cli": "--served-model-name"
+      },
+      "model_impl": {
+        "type": "select",
+        "default": "auto",
+        "options": ["auto", "vllm", "transformers"],
+        "help": "模型实现方式",
+        "cli": "--model-impl"
+      },
+      "disable_async_output_proc": {
+        "type": "boolean",
+        "default": false,
+        "help": "禁用异步输出处理",
+        "cli": "--disable-async-output-proc"
+      }
+    }
+  },
+  "env": {
+    "title": "环境变量",
+    "icon": "🔐",
+    "fields": {
+      "VLLM_ALLOW_LONG_MAX_MODEL_LEN": {
+        "type": "boolean",
+        "default": false,
+        "help": "允许设置超过模型限制的 max_model_len",
+        "cli": null
+      },
+      "VLLM_TEST_IPC_PATH": {
+        "type": "string",
+        "default": null,
+        "help": "测试 IPC 路径",
+        "cli": null
+      },
+      "VLLM_USAGE_STATS_ENABLED": {
+        "type": "boolean",
+        "default": true,
+        "help": "启用使用统计收集",
+        "cli": null
+      },
+      "VLLM_CONFIG_FILE": {
+        "type": "string",
+        "default": null,
+        "help": "配置文件路径",
+        "cli": null
+      },
+      "VLLM_ALLOW_REMOTE_CODE": {
+        "type": "boolean",
+        "default": false,
+        "help": "允许远程代码执行",
+        "cli": null
+      },
+      "VLLM_MAX_AUDIO_CLIP_FILESIZE_MB": {
+        "type": "number",
+        "default": 25,
+        "help": "Transcriptions API 最大音频文件大小（MB）",
+        "cli": null
+      },
+      "VLLM_NO_USAGE_STATS": {
+        "type": "boolean",
+        "default": false,
+        "help": "禁用使用统计",
+        "cli": null
+      },
+      "VLLM_USE_MODELSCOPE": {
+        "type": "boolean",
+        "default": false,
+        "help": "使用 ModelScope 下载模型",
+        "cli": null
+      },
+      "VLLM_ATTENTION_BACKEND": {
+        "type": "select",
+        "default": null,
+        "options": ["FLASH_ATTN", "FLASHINFER", "XFORMERS", "ROCM_FLASH", "ONE_DNN", "PALLAS"],
+        "help": "注意力后端",
+        "cli": null
+      },
+      "VLLM_FORCE_CPU_WARMUP": {
+        "type": "boolean",
+        "default": false,
+        "help": "强制 CPU 预热",
+        "cli": null
+      },
+      "VLLM_USE_AITER_QUANTIZATION": {
+        "type": "boolean",
+        "default": false,
+        "help": "使用 AITemplate 量化",
+        "cli": null
+      },
+      "VLLM_LOGGING_LEVEL": {
+        "type": "select",
+        "default": "INFO",
+        "options": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        "help": "日志级别",
+        "cli": null
+      }
+    }
+  }
+}
