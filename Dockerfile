@@ -37,8 +37,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# 复制 Python 依赖文件
+COPY requirements.txt .
+
 # 安装 Python 依赖
-RUN pip install --no-cache-dir modelscope
+RUN pip install --no-cache-dir -r requirements.txt
 
 # 复制前端构建产物
 COPY --from=frontend-builder /app/frontend/dist ./dist

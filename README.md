@@ -64,7 +64,9 @@ npm install
 ### Install Python Dependencies (Optional, for model search)
 
 ```bash
-pip install modelscope huggingface_hub
+pip install -r requirements.txt
+# or install manually:
+# pip install modelscope huggingface_hub
 ```
 
 ### Start Development Server
@@ -174,6 +176,7 @@ vllm-config-ui/
 │       ├── zh.json          # Chinese translation
 │       └── en.json          # English translation
 ├── server.py                # Python backend API
+├── requirements.txt         # Python dependencies
 ├── Dockerfile               # Docker build configuration
 ├── docker-compose.yml       # Docker Compose configuration
 ├── nginx.conf               # Nginx configuration

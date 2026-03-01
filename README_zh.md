@@ -64,7 +64,9 @@ npm install
 ### 安装 Python 依赖（可选，用于模型搜索）
 
 ```bash
-pip install modelscope huggingface_hub
+pip install -r requirements.txt
+# 或手动安装：
+# pip install modelscope huggingface_hub
 ```
 
 ### 启动开发服务器
@@ -173,8 +175,7 @@ vllm-config-ui/
 │   └── locales/             # 翻译文件
 │       ├── zh.json          # 中文翻译
 │       └── en.json          # 英文翻译
-├── server.py                # Python 后端 API
-├── Dockerfile               # Docker 构建配置
+├── server.py                # Python 后端 API├── requirements.txt         # Python 依赖├── Dockerfile               # Docker 构建配置
 ├── docker-compose.yml       # Docker Compose 配置
 ├── nginx.conf               # Nginx 配置
 ├── package.json             # Node.js 依赖
