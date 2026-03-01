@@ -26,7 +26,7 @@
   "search": {
     "button": "🔍 Search",
     "modal": {
-      "title": "ModelScope Search",
+      "title": "Models Search",
       "placeholder": "Enter model name, e.g., Qwen2.5, ChatGLM3...",
       "search": "Search",
       "searching": "Searching...",

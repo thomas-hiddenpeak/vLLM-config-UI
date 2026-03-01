@@ -26,7 +26,7 @@
   "search": {
     "button": "🔍 搜索模型",
     "modal": {
-      "title": "ModelScope 模型搜索",
+      "title": "Models Search",
       "placeholder": "输入模型名称，如：Qwen2.5、ChatGLM3、MiniMax/MiniMax-M2.5",
       "search": "搜索",
       "searching": "搜索中...",
