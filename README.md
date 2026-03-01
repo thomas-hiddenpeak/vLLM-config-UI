@@ -2,7 +2,7 @@
 
 A complete vLLM serve configuration generator Web UI with support for all 113+ vLLM startup parameters and environment variables.
 
-![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![React](https://img.shields.io/badge/React-18-blue.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue.svg)
 
@@ -223,7 +223,7 @@ curl -X POST http://localhost:8000/api/modelscope/search \
 
 ## 📝 License
 
-Apache License 2.0
+MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 

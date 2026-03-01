@@ -2,7 +2,7 @@
 
 一个功能完整的 vLLM serve 配置生成器 Web UI，支持所有 113+ 个 vLLM 启动参数和环境变量配置。
 
-![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![React](https://img.shields.io/badge/React-18-blue.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue.svg)
 
@@ -223,7 +223,7 @@ curl -X POST http://localhost:8000/api/modelscope/search \
 
 ## 📝 许可证
 
-Apache License 2.0
+MIT License - 详见 [LICENSE](LICENSE) 文件。
 
 ## 🙏 致谢
 
